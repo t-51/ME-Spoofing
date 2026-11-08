@@ -9,7 +9,6 @@ import '../services/update_service.dart';
 import '../theme_controller.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../widgets/community_dialog.dart';
-import '../widgets/config_converter_dialog.dart';
 import '../widgets/routing_assistant_dialog.dart';
 import 'logs_screen.dart';
 import 'settings_screen.dart';
@@ -309,10 +308,10 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       const SizedBox(width: 8),
                       _buildHeaderIconButton(
-                        icon: Icons.auto_fix_high_rounded,
-                        tooltip: loc.convertConfig,
+                        icon: Icons.alt_route_rounded,
+                        tooltip: loc.routingAssistant,
                         isDark: isDark,
-                        onPressed: () => showConfigConverterDialog(context),
+                        onPressed: () => showRoutingAssistantDialog(context),
                       ),
                       Expanded(
                         child: Column(

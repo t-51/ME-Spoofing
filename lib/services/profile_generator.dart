@@ -176,230 +176,37 @@ class ProfileGenerator {
     );
   }
 
-  /// Generates a full Sing-box / Happ Profile JSON with built-in Direct Routing.
-  static String generateSingBoxProfile(ParsedProxyConfig config) {
-    final bypassIps = getBypassIps().map((ip) => '$ip/32').toList();
-    final bypassDomains = getBypassDomains(config: config);
-
-    final Map<String, dynamic> outbound = {
-      'type': config.protocol == 'vless'
-          ? 'vless'
-          : (config.protocol == 'vmess' ? 'vmess' : 'trojan'),
-      'tag': 'proxy',
-      'server': '127.0.0.1',
-      'server_port': config.port,
-    };
-
-    if (config.protocol == 'vless') {
-      outbound['uuid'] = config.userOrPassword;
-      outbound['flow'] = '';
-    } else if (config.protocol == 'vmess') {
-      outbound['uuid'] = config.userOrPassword;
-      outbound['alter_id'] = 0;
-    } else {
-      outbound['password'] = config.userOrPassword;
+  /// Extracts the active server host domain (from config or ProxyManager).
+  static String getPrimaryHostDomain({ParsedProxyConfig? config}) {
+    if (config != null) {
+      if (config.sni.isNotEmpty) return config.sni;
+      if (config.hostHeader.isNotEmpty) return config.hostHeader;
+      if (config.originalHost.isNotEmpty &&
+          !RegExp(r'^[0-9.]+$').hasMatch(config.originalHost) &&
+          config.originalHost != '127.0.0.1') {
+        return config.originalHost;
+      }
     }
-
-    if (config.security == 'tls') {
-      outbound['tls'] = {
-        'enabled': true,
-        'server_name': config.sni.isNotEmpty
-            ? config.sni
-            : (config.hostHeader.isNotEmpty ? config.hostHeader : 'ws.kigaping.com'),
-        'insecure': false,
-      };
-    }
-
-    if (config.transport == 'ws') {
-      outbound['transport'] = {
-        'type': 'ws',
-        'path': config.path.isNotEmpty ? config.path : '/trojan-ws',
-        'headers': {
-          'Host': config.hostHeader.isNotEmpty
-              ? config.hostHeader
-              : (config.sni.isNotEmpty ? config.sni : 'ws.kigaping.com'),
-        },
-      };
-    }
-
-    final profile = {
-      'log': {
-        'level': 'warn',
-        'timestamp': true,
-      },
-      'dns': {
-        'servers': [
-          {
-            'tag': 'dns-direct',
-            'address': 'local',
-            'detour': 'direct',
-          },
-          {
-            'tag': 'dns-remote',
-            'address': 'tcp://1.1.1.1',
-            'detour': 'proxy',
-          },
-        ],
-      },
-      'inbounds': [
-        {
-          'type': 'tun',
-          'tag': 'tun-in',
-          'interface_name': 'tun0',
-          'inet4_address': '172.19.0.1/30',
-          'auto_route': true,
-          'strict_route': false,
-          'stack': 'system',
-          'sniff': true,
-        },
-      ],
-      'outbounds': [
-        outbound,
-        {
-          'type': 'direct',
-          'tag': 'direct',
-        },
-        {
-          'type': 'block',
-          'tag': 'block',
-        },
-        {
-          'type': 'dns',
-          'tag': 'dns-out',
-        },
-      ],
-      'route': {
-        'auto_detect_interface': true,
-        'rules': [
-          {
-            'outbound': 'direct',
-            'ip_cidr': bypassIps,
-          },
-          if (bypassDomains.isNotEmpty)
-            {
-              'outbound': 'direct',
-              'domain': bypassDomains,
-            },
-          {
-            'protocol': 'dns',
-            'outbound': 'dns-out',
-          },
-        ],
-      },
-    };
-
-    return const JsonEncoder.withIndent('  ').convert(profile);
+    return ProxyManager.instance.primaryHostDomain;
   }
 
-  /// Generates a full Xray / v2rayNG Custom Config JSON with built-in Direct Routing.
-  static String generateV2rayCustomConfig(ParsedProxyConfig config) {
-    final bypassIps = getBypassIps().map((ip) => '$ip/32').toList();
-    final bypassDomains =
-        getBypassDomains(config: config).map((d) => 'domain:$d').toList();
-
-    final Map<String, dynamic> outbound = {
-      'tag': 'proxy',
-      'protocol': config.protocol == 'vless'
-          ? 'vless'
-          : (config.protocol == 'vmess' ? 'vmess' : 'trojan'),
-    };
-
-    if (config.protocol == 'vless') {
-      outbound['settings'] = {
-        'vnext': [
-          {
-            'address': '127.0.0.1',
-            'port': config.port,
-            'users': [
-              {
-                'id': config.userOrPassword,
-                'encryption': 'none',
-              }
-            ],
-          }
-        ],
-      };
-    } else if (config.protocol == 'vmess') {
-      outbound['settings'] = {
-        'vnext': [
-          {
-            'address': '127.0.0.1',
-            'port': config.port,
-            'users': [
-              {
-                'id': config.userOrPassword,
-                'alterId': 0,
-                'security': 'auto',
-              }
-            ],
-          }
-        ],
-      };
-    } else {
-      outbound['settings'] = {
-        'servers': [
-          {
-            'address': '127.0.0.1',
-            'port': config.port,
-            'password': config.userOrPassword,
-          }
-        ],
-      };
+  /// Generates a unified comma-separated list of all Direct/Bypass rules (domain:Host + Clean IPs).
+  static String getAllDirectRulesString({ParsedProxyConfig? config}) {
+    final domains = getBypassDomains(config: config);
+    final ips = getBypassIps();
+    final parts = <String>[];
+    for (final d in domains) {
+      parts.add('domain:$d');
     }
-
-    outbound['streamSettings'] = {
-      'network': config.transport,
-      'security': config.security,
-      if (config.security == 'tls')
-        'tlsSettings': {
-          'serverName': config.sni.isNotEmpty ? config.sni : config.hostHeader,
-          'allowInsecure': false,
-        },
-      if (config.transport == 'ws')
-        'wsSettings': {
-          'path': config.path.isNotEmpty ? config.path : '/trojan-ws',
-          'headers': {
-            'Host': config.hostHeader.isNotEmpty ? config.hostHeader : config.sni,
-          },
-        },
-    };
-
-    final customConfig = {
-      'log': {'loglevel': 'warning'},
-      'inbounds': [
-        {
-          'port': 10808,
-          'protocol': 'socks',
-          'sniffing': {'enabled': true, 'destOverride': ['http', 'tls']},
-          'settings': {'auth': 'noauth', 'udp': true},
-        },
-      ],
-      'outbounds': [
-        outbound,
-        {
-          'tag': 'direct',
-          'protocol': 'freedom',
-          'settings': {},
-        },
-      ],
-      'routing': {
-        'domainStrategy': 'IPIfNonMatch',
-        'rules': [
-          {
-            'type': 'field',
-            'outboundTag': 'direct',
-            'ip': bypassIps,
-            if (bypassDomains.isNotEmpty) 'domain': bypassDomains,
-          },
-        ],
-      },
-    };
-
-    return const JsonEncoder.withIndent('  ').convert(customConfig);
+    parts.addAll(ips);
+    return parts.join(', ');
   }
 
   /// Generates the standard single-line URI with host pointed to 127.0.0.1.
-  static String generateStandardUri(ParsedProxyConfig config) {
+  static String generateStandardUri(ParsedProxyConfig config, {int? customPort}) {
+    final targetPort =
+        (customPort != null && customPort > 0) ? customPort : config.port;
+
     if (config.protocol == 'vmess') {
       try {
         final b64 = config.raw.substring(8);
@@ -407,15 +214,20 @@ class ProfileGenerator {
         final decoded = utf8.decode(base64Decode(normalized));
         final Map<String, dynamic> json = jsonDecode(decoded);
         json['add'] = '127.0.0.1';
+        if (targetPort > 0) json['port'] = targetPort;
         return "vmess://${base64Encode(utf8.encode(jsonEncode(json)))}";
       } catch (_) {}
     }
 
     try {
       final uri = Uri.parse(config.raw);
-      return uri.replace(host: '127.0.0.1').toString();
+      return uri.replace(
+        host: '127.0.0.1',
+        port: targetPort > 0 ? targetPort : uri.port,
+      ).toString();
     } catch (_) {
       return config.raw;
     }
   }
 }
+

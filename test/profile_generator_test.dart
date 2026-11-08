@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:snispoof/services/profile_generator.dart';
 
@@ -22,55 +21,23 @@ void main() {
       expect(config.security, 'tls');
     });
 
-    test('generates valid Sing-box profile with direct bypass routing', () {
+    test('extracts primary host domain and bypass domains correctly', () {
       final config = ProfileGenerator.parse(trojanUri);
-      final jsonStr = ProfileGenerator.generateSingBoxProfile(config);
+      final hostDomain = ProfileGenerator.getPrimaryHostDomain(config: config);
 
-      final Map<String, dynamic> parsed = jsonDecode(jsonStr);
-      expect(parsed['outbounds'], isA<List>());
-      expect(parsed['route'], isA<Map>());
+      expect(hostDomain, 'ws.kigaping.com');
 
-      final route = parsed['route'] as Map<String, dynamic>;
-      final rules = route['rules'] as List<dynamic>;
-
-      // Confirm there is an outbound direct rule containing clean IPs
-      final ipRule = rules.firstWhere(
-        (r) => r['outbound'] == 'direct' && r['ip_cidr'] != null,
-      ) as Map<String, dynamic>;
-      final ipList = ipRule['ip_cidr'] as List<dynamic>;
-
-      expect(ipList, contains('188.114.98.0/32'));
-      expect(ipList, contains('127.0.0.1/32'));
-
-      // Confirm there is an outbound direct rule containing the server SNI
-      final domainRule = rules.firstWhere(
-        (r) => r['outbound'] == 'direct' && r['domain'] != null,
-      ) as Map<String, dynamic>;
-      final domainList = domainRule['domain'] as List<dynamic>;
-
-      expect(domainList, contains('ws.kigaping.com'));
+      final domains = ProfileGenerator.getBypassDomains(config: config);
+      expect(domains, contains('ws.kigaping.com'));
     });
 
-    test('generates valid Xray / v2rayNG custom config with direct routing', () {
+    test('generates all direct rules string containing Clean IPs and Host Domain', () {
       final config = ProfileGenerator.parse(trojanUri);
-      final jsonStr = ProfileGenerator.generateV2rayCustomConfig(config);
+      final rules = ProfileGenerator.getAllDirectRulesString(config: config);
 
-      final Map<String, dynamic> parsed = jsonDecode(jsonStr);
-      expect(parsed['outbounds'], isA<List>());
-      expect(parsed['routing'], isA<Map>());
-
-      final routing = parsed['routing'] as Map<String, dynamic>;
-      final rules = routing['rules'] as List<dynamic>;
-
-      final directRule = rules.firstWhere(
-        (r) => r['outboundTag'] == 'direct',
-      ) as Map<String, dynamic>;
-
-      final ipList = directRule['ip'] as List<dynamic>;
-      expect(ipList, contains('188.114.98.0/32'));
-
-      final domainList = directRule['domain'] as List<dynamic>;
-      expect(domainList, contains('domain:ws.kigaping.com'));
+      expect(rules, contains('domain:ws.kigaping.com'));
+      expect(rules, contains('188.114.98.0'));
+      expect(rules, contains('127.0.0.1'));
     });
 
     test('generates standard URI pointing to 127.0.0.1', () {

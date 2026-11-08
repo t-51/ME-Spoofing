@@ -370,6 +370,47 @@ class ProxyManager extends ChangeNotifier {
   List<int> get mhServerPorts => List.unmodifiable(_mhServerPorts);
   String get mhServerPortsString => _mhServerPorts.join(', ');
 
+  String get primaryHostDomain {
+    if (_cfServerSni.isNotEmpty && _cfServerSni != 'ws.kigaping.com') {
+      return _cfServerSni;
+    }
+    for (final host in _mhServerHosts) {
+      final trimmed = host.trim();
+      if (trimmed.isNotEmpty &&
+          !RegExp(r'^[0-9.]+$').hasMatch(trimmed) &&
+          trimmed != '127.0.0.1') {
+        return trimmed;
+      }
+    }
+    return _cfServerSni.isNotEmpty ? _cfServerSni : 'ws.kigaping.com';
+  }
+
+  void applyConfigDetails({int? port, String? hostDomain}) {
+    bool changed = false;
+    if (port != null &&
+        port > 0 &&
+        port <= 65535 &&
+        !_mhServerPorts.contains(port)) {
+      _mhServerPorts.add(port);
+      _addLiveListener(port);
+      changed = true;
+    }
+    if (hostDomain != null && hostDomain.trim().isNotEmpty) {
+      final trimmed = hostDomain.trim();
+      if (!RegExp(r'^[0-9.]+$').hasMatch(trimmed) && trimmed != '127.0.0.1') {
+        _cfServerSni = trimmed;
+        if (!_mhServerHosts.contains(trimmed)) {
+          _mhServerHosts.add(trimmed);
+        }
+        changed = true;
+      }
+    }
+    if (changed) {
+      notifyListeners();
+      saveSettingsToDisk();
+    }
+  }
+
   String get host => _host;
   int get socksPort => _socksPort;
   int get httpPort => _httpPort;
