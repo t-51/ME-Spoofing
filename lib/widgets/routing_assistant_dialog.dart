@@ -3,42 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
-import '../proxy/proxy_manager.dart';
+import '../services/profile_generator.dart';
 import '../theme_controller.dart';
+import 'config_converter_dialog.dart';
 
 class RoutingAssistantDialog extends StatelessWidget {
   const RoutingAssistantDialog({super.key});
 
   static const String appPackageName = 'com.kigaping.mespoofing';
 
-  static final List<String> defaultDirectIps = [
-    '188.114.98.0',
-    '104.18.119.142',
-    '104.25.165.92',
-    '162.159.192.1',
-    '104.16.132.229',
-    '212.227.143.16',
-  ];
-
-  List<String> _getAllDirectIps() {
-    final ips = <String>{...defaultDirectIps};
-    final manager = ProxyManager.instance;
-    if (manager.cfCleanIp.isNotEmpty) ips.add(manager.cfCleanIp);
-    for (final host in manager.mhServerHosts) {
-      if (RegExp(r'^[0-9.]+$').hasMatch(host)) {
-        ips.add(host);
-      }
-    }
-    return ips.toList();
-  }
+  List<String> _getAllDirectIps() => ProfileGenerator.getBypassIps();
 
   String _generateJsonRule() {
     final ips = _getAllDirectIps().map((ip) => '$ip/32').toList();
-    final manager = ProxyManager.instance;
-    final domains = <String>{
-      'domain:${manager.cfServerSni}',
-      'domain:${manager.fakeSni}',
-    }.toList();
+    final domains =
+        ProfileGenerator.getBypassDomains().map((d) => 'domain:$d').toList();
 
     final rule = {
       'type': 'field',
@@ -49,29 +28,35 @@ class RoutingAssistantDialog extends StatelessWidget {
     return const JsonEncoder.withIndent('  ').convert(rule);
   }
 
-  Future<void> _openApp(BuildContext context, String packageUri, String appName) async {
+  Future<void> _openApp(
+    BuildContext context,
+    String scheme,
+    String packageName,
+    String appName,
+  ) async {
     try {
-      final uri = Uri.parse(packageUri);
+      final uri = Uri.parse(scheme);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$appName روی دستگاه یافت نشد.'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        return;
       }
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$appName روی دستگاه یافت نشد.'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    } catch (_) {}
+
+    try {
+      final pkgUri = Uri.parse('android-app://$packageName');
+      if (await canLaunchUrl(pkgUri)) {
+        await launchUrl(pkgUri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$appName روی دستگاه باز نشد؛ لطفاً آن را دستی باز کنید.'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -126,12 +111,77 @@ class RoutingAssistantDialog extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 6),
+              // --- 1-Click Integrated Config Banner ---
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08),
+                  color: primaryBlue.withOpacity(0.09),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                  border: Border.all(color: primaryBlue.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.auto_fix_high_rounded,
+                          color: primaryBlue,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "راهکار آسان (پیشنهادی): کانفیگ با روتینگ سرخود",
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "بدون نیاز به تنظیم دستی روتینگ، کانفیگ شما به صورت یک پروفایل کامل Happ یا v2rayNG با روتینگ مستقیم آماده می‌شود.",
+                      style: TextStyle(
+                        fontSize: 11,
+                        height: 1.45,
+                        color: textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      icon: const Icon(Icons.rocket_launch_rounded, size: 16),
+                      label: const Text(
+                        "تولید خودکار پروفایل ادغام‌شده (۱ کلیک)",
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        showConfigConverterDialog(context);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(isDark ? 0.12 : 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,7 +380,8 @@ class RoutingAssistantDialog extends StatelessWidget {
                       ),
                       onPressed: () => _openApp(
                         context,
-                        'package:com.v2ray.ang',
+                        'v2rayng://',
+                        'com.v2ray.ang',
                         'v2rayNG',
                       ),
                     ),
@@ -349,7 +400,8 @@ class RoutingAssistantDialog extends StatelessWidget {
                       ),
                       onPressed: () => _openApp(
                         context,
-                        'package:com.happ.app',
+                        'happ://',
+                        'com.github.happ.android',
                         'Happ',
                       ),
                     ),
