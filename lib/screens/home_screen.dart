@@ -10,6 +10,7 @@ import '../theme_controller.dart';
 import '../widgets/ad_banner_widget.dart';
 import '../widgets/community_dialog.dart';
 import '../widgets/config_converter_dialog.dart';
+import '../widgets/routing_assistant_dialog.dart';
 import 'logs_screen.dart';
 import 'settings_screen.dart';
 
@@ -344,7 +345,7 @@ class _HomeScreenState extends State<HomeScreen>
                       const SizedBox(width: 8),
                       _buildHeaderIconButton(
                         icon: Icons.settings_outlined,
-                        tooltip: "تنظیمات سرور",
+                        tooltip: loc.settings,
                         isDark: isDark,
                         onPressed: () {
                           Navigator.push(
@@ -664,6 +665,75 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                             );
                           },
+                        ),
+                        const SizedBox(height: 14),
+
+                        // --- ROUTING ASSISTANT QUICK CARD ---
+                        InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => showRoutingAssistantDialog(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isDark
+                                    ? const Color(0xFF21262D)
+                                    : const Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2855D9).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.alt_route_rounded,
+                                    color: Color(0xFF2855D9),
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        loc.routingAssistant,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: titleColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        loc.routingAssistantDesc,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          color: subColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: Color(0xFF2855D9),
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 18),
                       ],

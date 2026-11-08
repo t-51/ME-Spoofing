@@ -944,6 +944,50 @@ class AppLocalizations {
   String get rewardEarned => translate('rewardEarned');
   String get rewardNotice => translate('rewardNotice');
   String get great => translate('great');
+
+  String get transportMode => translate('transportMode');
+  String get transportModeDesc => translate('transportModeDesc');
+  String get mode1Title => translate('mode1Title');
+  String get mode1Sub => translate('mode1Sub');
+  String get mode2Title => translate('mode2Title');
+  String get mode2Sub => translate('mode2Sub');
+  String get mode3Title => translate('mode3Title');
+  String get mode3Sub => translate('mode3Sub');
+  String get serverSection => translate('serverSection');
+  String get serverHost => translate('serverHost');
+  String get daemonPort => translate('daemonPort');
+  String get fragmentDelay => translate('fragmentDelay');
+  String get fakeSni => translate('fakeSni');
+  String get customDomain => translate('customDomain');
+  String get fakePacketToggle => translate('fakePacketToggle');
+  String get cfSection => translate('cfSection');
+  String get cfCleanIp => translate('cfCleanIp');
+  String get customCleanIp => translate('customCleanIp');
+  String get cfPort => translate('cfPort');
+  String get cfSni => translate('cfSni');
+  String get dnsSection => translate('dnsSection');
+  String get dnsProto => translate('dnsProto');
+  String get dnsSubdomain => translate('dnsSubdomain');
+  String get dnsPubKey => translate('dnsPubKey');
+  String get dnsResolver => translate('dnsResolver');
+  String get dnsType => translate('dnsType');
+  String get dnsLocalPort => translate('dnsLocalPort');
+  String get profilePorts => translate('profilePorts');
+  String get profilePortsDesc => translate('profilePortsDesc');
+  String get addNewPort => translate('addNewPort');
+  String get add => translate('add');
+  String get allPortsText => translate('allPortsText');
+  String get fallbackPort => translate('fallbackPort');
+  String get saveSettings => translate('saveSettings');
+  String get savedSuccess => translate('savedSuccess');
+  String get saveRestartNotice => translate('saveRestartNotice');
+  String get routingAssistant => translate('routingAssistant');
+  String get routingAssistantDesc => translate('routingAssistantDesc');
+  String get copyDirectIps => translate('copyDirectIps');
+  String get copyJsonRule => translate('copyJsonRule');
+  String get copyPackageName => translate('copyPackageName');
+  String get openV2rayng => translate('openV2rayng');
+  String get openHapp => translate('openHapp');
 }
 
 class _AppLocalizationsDelegate

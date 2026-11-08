@@ -17,7 +17,7 @@ void main() {
         ThemeMode.light,
       );
 
-      await tester.tap(find.byTooltip('تنظیمات سرور'));
+      await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       await tester.tap(find.text('تیره'));

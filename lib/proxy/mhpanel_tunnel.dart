@@ -63,7 +63,7 @@ class MhpanelTunnel {
     required this.fakeSni,
     this.fragmentDelayMs = 3,
     this.enableFakePacket = true,
-    this.cfCleanIp = "104.18.119.142",
+    this.cfCleanIp = "188.114.98.0",
     this.cfCleanPort = 443,
     this.cfServerSni = "ws.kigaping.com",
     required this.onLog,
@@ -200,14 +200,14 @@ class MhpanelTunnel {
       return await Socket.connect(
         address,
         port,
-        timeout: const Duration(milliseconds: 2000),
+        timeout: const Duration(milliseconds: 6000),
       );
     } catch (_) {
-      // Single fast retry in case initial SYN packet was dropped by DPI
+      // Retry in case initial SYN packet was dropped by cellular DPI
       return await Socket.connect(
         address,
         port,
-        timeout: const Duration(milliseconds: 2500),
+        timeout: const Duration(milliseconds: 7000),
       );
     }
   }
@@ -270,23 +270,26 @@ class MhpanelTunnel {
 
     _serverIpAddresses.clear();
     final hostsToResolve = transportMode == MhpanelTransportMode.cloudflareClean
-        ? [cfCleanIp]
+        ? [cfCleanIp, "188.114.98.0", "104.18.119.142", "162.159.192.1"]
         : serverHosts;
     for (final configuredHost in hostsToResolve) {
       final host = configuredHost.trim();
       if (host.isEmpty) continue;
       final parsed = InternetAddress.tryParse(host);
       if (parsed != null) {
-        _serverIpAddresses.add(parsed);
+        if (!_serverIpAddresses.any((a) => a.address == parsed.address)) {
+          _serverIpAddresses.add(parsed);
+        }
         continue;
       }
       try {
         final addresses = await InternetAddress.lookup(host);
-        final address = addresses.firstWhere(
-          (a) => a.type == InternetAddressType.IPv4,
-          orElse: () => addresses.first,
-        );
-        _serverIpAddresses.add(address);
+        for (final address in addresses) {
+          if (address.type == InternetAddressType.IPv4 &&
+              !_serverIpAddresses.any((a) => a.address == address.address)) {
+            _serverIpAddresses.add(address);
+          }
+        }
       } catch (e) {
         onLog("⚠️ Could not resolve server address $host: $e");
       }
@@ -318,12 +321,13 @@ class MhpanelTunnel {
     for (final port in distinctPorts) {
       try {
         final serverSocket = await ServerSocket.bind(
-          InternetAddress.loopbackIPv4,
+          InternetAddress.anyIPv4,
           port,
+          shared: true,
         );
         _serverSockets.add(serverSocket);
         _boundLocalPorts.add(port);
-        onLog("🚀 Listening on 127.0.0.1:$port ➔ Server Upstream: $port");
+        onLog("🚀 Listening on 0.0.0.0:$port (and 127.0.0.1:$port) ➔ Server Upstream: $port");
 
         serverSocket.listen(
           (clientSocket) => _handleConnection(clientSocket, port),
@@ -332,7 +336,7 @@ class MhpanelTunnel {
           },
         );
       } catch (e) {
-        onLog("⚠️ Could not bind 127.0.0.1:$port: $e");
+        onLog("⚠️ Could not bind 0.0.0.0:$port: $e");
       }
     }
 
@@ -340,13 +344,14 @@ class MhpanelTunnel {
     if (fallbackLocalPort > 0 && !distinctPorts.contains(fallbackLocalPort)) {
       try {
         final fallbackSocket = await ServerSocket.bind(
-          InternetAddress.loopbackIPv4,
+          InternetAddress.anyIPv4,
           fallbackLocalPort,
+          shared: true,
         );
         _serverSockets.add(fallbackSocket);
         _boundLocalPorts.add(fallbackLocalPort);
         onLog(
-          "🚀 Listening on 127.0.0.1:$fallbackLocalPort ➔ Server Upstream: $primaryPort",
+          "🚀 Listening on 0.0.0.0:$fallbackLocalPort (and 127.0.0.1:$fallbackLocalPort) ➔ Server Upstream: $primaryPort",
         );
 
         fallbackSocket.listen(
@@ -356,7 +361,7 @@ class MhpanelTunnel {
           },
         );
       } catch (e) {
-        onLog("⚠️ Could not bind 127.0.0.1:$fallbackLocalPort: $e");
+        onLog("⚠️ Could not bind 0.0.0.0:$fallbackLocalPort: $e");
       }
     }
 
@@ -372,8 +377,9 @@ class MhpanelTunnel {
     }
 
     final serverSocket = await ServerSocket.bind(
-      InternetAddress.loopbackIPv4,
+      InternetAddress.anyIPv4,
       port,
+      shared: true,
     );
     if (_isStopping) {
       await serverSocket.close();
@@ -472,61 +478,42 @@ class MhpanelTunnel {
       if (!initialHandshakeDone && isTlsClientHello(payload)) {
         initialHandshakeDone = true;
 
-        final sniOffset = findSniOffset(payload);
-        if (sniOffset > 0 && sniOffset + 2 < payload.length) {
-          final splitPoint = sniOffset + 2;
-          final chunk1 = payload.sublist(0, splitPoint);
-          final chunk2 = payload.sublist(splitPoint);
+        if (fragmentDelayMs > 0) {
+          final sniOffset = findSniOffset(payload);
+          if (sniOffset > 0 && sniOffset + 2 < payload.length) {
+            final splitPoint = sniOffset + 2;
+            final chunk1 = payload.sublist(0, splitPoint);
+            final chunk2 = payload.sublist(splitPoint);
 
-          try {
-            remoteSocket!.add(chunk1);
-            await remoteSocket!.flush();
-            onStats(chunk1.length, 0);
+            try {
+              remoteSocket!.add(chunk1);
+              await remoteSocket!.flush();
+              onStats(chunk1.length, 0);
 
-            if (fragmentDelayMs > 0) {
               await Future.delayed(Duration(milliseconds: fragmentDelayMs));
+
+              remoteSocket!.add(chunk2);
+              await remoteSocket!.flush();
+              onStats(chunk2.length, 0);
+
+              onLog(
+                "⚡ Fragmented ClientHello (Split @ $splitPoint, Upstream: $targetPort)",
+              );
+              return;
+            } catch (e) {
+              closeAll();
+              return;
             }
-
-            remoteSocket!.add(chunk2);
-            await remoteSocket!.flush();
-            onStats(chunk2.length, 0);
-
-            onLog(
-              "⚡ Fragmented ClientHello (Split @ $splitPoint, Upstream: $targetPort)",
-            );
-          } catch (e) {
-            closeAll();
-          }
-        } else {
-          // Fallback split
-          final splitPoint = payload.length > 5 ? 5 : payload.length ~/ 2;
-          final chunk1 = payload.sublist(0, splitPoint);
-          final chunk2 = payload.sublist(splitPoint);
-
-          try {
-            remoteSocket!.add(chunk1);
-            await remoteSocket!.flush();
-            onStats(chunk1.length, 0);
-
-            if (fragmentDelayMs > 0) {
-              await Future.delayed(Duration(milliseconds: fragmentDelayMs));
-            }
-
-            remoteSocket!.add(chunk2);
-            await remoteSocket!.flush();
-            onStats(chunk2.length, 0);
-          } catch (_) {
-            closeAll();
           }
         }
-      } else {
-        try {
-          remoteSocket!.add(payload);
-          await remoteSocket!.flush();
-          onStats(payload.length, 0);
-        } catch (_) {
-          closeAll();
-        }
+      }
+
+      try {
+        remoteSocket!.add(payload);
+        await remoteSocket!.flush();
+        onStats(payload.length, 0);
+      } catch (_) {
+        closeAll();
       }
     }
 

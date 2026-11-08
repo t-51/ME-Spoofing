@@ -81,7 +81,7 @@ class ProxyManager extends ChangeNotifier {
   List<int> _mhServerPorts = [20456, 20451, 20454, 20455];
 
   // --- Mode 2: Cloudflare Clean IP Settings ---
-  String _cfCleanIp = "104.18.119.142";
+  String _cfCleanIp = "188.114.98.0";
   int _cfCleanPort = 443;
   String _cfServerSni = "ws.kigaping.com";
   int _cfFragmentDelayMs = 5;

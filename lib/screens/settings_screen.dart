@@ -5,6 +5,7 @@ import '../proxy/dns_tunnel.dart';
 import '../services/locale_controller.dart';
 import '../theme_controller.dart';
 import '../widgets/community_dialog.dart';
+import '../widgets/routing_assistant_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -60,6 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
 
   final List<String> _cfCleanPresets = [
+    "188.114.98.0",
     "104.18.119.142",
     "104.25.165.92",
     "162.159.192.1",
@@ -280,12 +282,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
 
         if (!mounted) return;
+        final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               _manager.isRunning
-                  ? "تنظیمات ذخیره شد! برای اعمال کامل، اتصال را مجدداً راه‌اندازی کنید."
-                  : "تنظیمات با موفقیت ذخیره شد.",
+                  ? loc.saveRestartNotice
+                  : loc.savedSuccess,
             ),
             backgroundColor: const Color(0xFF2855D9),
           ),
@@ -295,7 +298,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("ذخیره تنظیمات ناموفق بود: $e"),
+            content: Text("Error: $e"),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -489,13 +492,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  // --- ROUTING ASSISTANT BANNER ---
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: primaryBlue.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: primaryBlue.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.alt_route_rounded,
+                            color: primaryBlue,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                loc.routingAssistant,
+                                style: TextStyle(
+                                  color: textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                loc.routingAssistantDesc,
+                                style: TextStyle(
+                                  color: textSecondary,
+                                  fontSize: 10.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: primaryBlue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onPressed: () => showRoutingAssistantDialog(context),
+                          child: Text(
+                            loc.routingAssistant,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
 
                   // --- TRANSPORT MODE SELECTOR ---
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      "حالت اتصال (Multi-Transport Architecture)",
+                      loc.transportMode,
                       style: TextStyle(
                         color: textPrimary,
                         fontSize: 14.5,
@@ -505,7 +581,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "پشتیبانی از ۳ ترانسپورت ضدسانسور MHPanel بدون نیاز به پروفایل VPN سیستم:",
+                    loc.transportModeDesc,
                     style: TextStyle(
                       fontSize: 11.5,
                       color: textSecondary,
@@ -520,6 +596,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     textPrimary: textPrimary,
                     textSecondary: textSecondary,
                     primaryBlue: primaryBlue,
+                    loc: loc,
                   ),
 
                   const SizedBox(height: 20),
@@ -534,6 +611,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       textPrimary: textPrimary,
                       textSecondary: textSecondary,
                       primaryBlue: primaryBlue,
+                      loc: loc,
                     ),
                   ] else if (_selectedTransportMode ==
                       TransportMode.cloudflareClean) ...[
@@ -545,6 +623,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       textPrimary: textPrimary,
                       textSecondary: textSecondary,
                       primaryBlue: primaryBlue,
+                      loc: loc,
                     ),
                   ] else ...[
                     _buildMode3Section(
@@ -555,6 +634,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       textPrimary: textPrimary,
                       textSecondary: textSecondary,
                       primaryBlue: primaryBlue,
+                      loc: loc,
                     ),
                   ],
 
@@ -569,7 +649,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          "پورت‌های پروفایل",
+                          loc.profilePorts,
                           style: TextStyle(
                             color: textPrimary,
                             fontSize: 15,
@@ -589,7 +669,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           border: Border.all(color: borderColor),
                         ),
                         child: Text(
-                          "${portChips.length} پورت فعال",
+                          "${portChips.length}",
                           style: TextStyle(
                             color: textSecondary,
                             fontSize: 11,
@@ -601,7 +681,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "پورت‌های کانفیگ‌ها در MHPanel را وارد کنید. برنامه روی 127.0.0.1 روی همین پورت‌ها آماده اتصال می‌شود:",
+                    loc.profilePortsDesc,
                     style: TextStyle(fontSize: 11.5, color: textSecondary),
                   ),
                   const SizedBox(height: 12),
@@ -673,7 +753,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             fontFamily: 'monospace',
                           ),
                           decoration: InputDecoration(
-                            hintText: "افزودن پورت جدید (مثلاً 20456 یا 8080)",
+                            hintText: loc.addNewPort,
                             hintStyle: TextStyle(
                               color: textSecondary.withOpacity(0.7),
                               fontSize: 12,
@@ -711,9 +791,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         onPressed: _addNewPort,
                         icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text(
-                          "افزودن",
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        label: Text(
+                          loc.add,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -721,7 +801,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 14),
 
                   _buildFieldLabel(
-                    "لیست متنی همه پورت‌ها (با کاما جدا کنید)",
+                    loc.allPortsText,
                     textSecondary,
                   ),
                   TextFormField(
@@ -733,7 +813,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: "مثلاً: 20456, 20451, 20454",
+                      hintText: "20456, 20451, 20454",
                       filled: true,
                       fillColor: surfaceColor,
                       border: OutlineInputBorder(
@@ -754,7 +834,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildFieldLabel("پورت کمکی لوکال", textSecondary),
+                            _buildFieldLabel(loc.fallbackPort, textSecondary),
                             TextFormField(
                               controller: _fallbackLocalPortController,
                               keyboardType: TextInputType.number,
@@ -779,7 +859,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               validator: (val) {
                                 final port = int.tryParse(val ?? "");
                                 return port == null || port < 1 || port > 65535
-                                    ? "نامعتبر"
+                                    ? "Invalid"
                                     : null;
                               },
                             ),
@@ -909,9 +989,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   onPressed: _saveSettings,
-                  child: const Text(
-                    "ذخیره و اعمال تنظیمات",
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  child: Text(
+                    loc.saveSettings,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -929,13 +1009,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color textPrimary,
     required Color textSecondary,
     required Color primaryBlue,
+    required AppLocalizations loc,
   }) {
     return Column(
       children: [
         _buildModeOptionTile(
           mode: TransportMode.directSni,
-          title: "حالت ۱: مستقیم با ضد فیلتر SNI",
-          subtitle: "پورت ۱۵۴۴۳ دیمن MHPanel • تزریق SNI جعلی و هدر SNIP",
+          title: loc.mode1Title,
+          subtitle: loc.mode1Sub,
           icon: Icons.security_rounded,
           isDark: isDark,
           surfaceColor: surfaceColor,
@@ -947,8 +1028,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         _buildModeOptionTile(
           mode: TransportMode.cloudflareClean,
-          title: "حالت ۲: کلودفلر آی‌پی تمیز + فرگمنت",
-          subtitle: "پورت ۴۴۳ Anycast • قطعه‌بندی ClientHello از مرز پسوند SNI",
+          title: loc.mode2Title,
+          subtitle: loc.mode2Sub,
           icon: Icons.filter_drama_rounded,
           isDark: isDark,
           surfaceColor: surfaceColor,
@@ -960,8 +1041,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         _buildModeOptionTile(
           mode: TransportMode.dnsTunnel,
-          title: "حالت ۳: تونل دی‌ان‌اس (DNS Tunnel)",
-          subtitle: "پروتکل VayDNS / DNSTT • دور زدن قطعی سراسری (اینترنت ملی)",
+          title: loc.mode3Title,
+          subtitle: loc.mode3Sub,
           icon: Icons.dns_rounded,
           isDark: isDark,
           surfaceColor: surfaceColor,
@@ -1068,6 +1149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color textPrimary,
     required Color textSecondary,
     required Color primaryBlue,
+    required AppLocalizations loc,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1075,7 +1157,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Align(
           alignment: Alignment.centerRight,
           child: Text(
-            "سرور MHPanel",
+            loc.serverSection,
             style: TextStyle(
               color: textPrimary,
               fontSize: 14,
@@ -1085,7 +1167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 12),
 
-        _buildFieldLabel("آدرس سرور یا دامنه اصلی", textSecondary),
+        _buildFieldLabel(loc.serverHost, textSecondary),
         TextFormField(
           controller: _serverHostController,
           style: TextStyle(
@@ -1107,7 +1189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           validator: (val) =>
-              (val == null || val.trim().isEmpty) ? "آدرس سرور را وارد کنید" : null,
+              (val == null || val.trim().isEmpty) ? loc.serverHost : null,
         ),
         const SizedBox(height: 14),
 
@@ -1117,7 +1199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFieldLabel("پورت دیمن SNIP سرور", textSecondary),
+                  _buildFieldLabel(loc.daemonPort, textSecondary),
                   TextFormField(
                     controller: _daemonPortController,
                     keyboardType: TextInputType.number,
@@ -1142,7 +1224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     validator: (val) {
                       final port = int.tryParse(val ?? "");
                       return port == null || port < 1 || port > 65535
-                          ? "نامعتبر"
+                          ? "Invalid"
                           : null;
                     },
                   ),
@@ -1154,7 +1236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFieldLabel("تاخیر قطعه‌بندی (ms)", textSecondary),
+                  _buildFieldLabel(loc.fragmentDelay, textSecondary),
                   TextFormField(
                     controller: _fragmentDelayController,
                     keyboardType: TextInputType.number,
@@ -1184,7 +1266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 14),
 
-        _buildFieldLabel("SNI جعلی (Decoy Host)", textSecondary),
+        _buildFieldLabel(loc.fakeSni, textSecondary),
         DropdownButtonFormField<String>(
           value: _selectedFakeSni,
           dropdownColor: surfaceColor,
@@ -1211,7 +1293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         if (_selectedFakeSni == "Custom ...") ...[
           const SizedBox(height: 12),
-          _buildFieldLabel("دامین دلخواه SNI", textSecondary),
+          _buildFieldLabel(loc.customDomain, textSecondary),
           TextFormField(
             controller: _customSniController,
             style: TextStyle(
@@ -1241,7 +1323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Expanded(
               child: Text(
-                "ارسال بسته جعلی اولیه (Decoy ClientHello)",
+                loc.fakePacketToggle,
                 style: TextStyle(
                   color: textPrimary,
                   fontSize: 13,
@@ -1269,6 +1351,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color textPrimary,
     required Color textSecondary,
     required Color primaryBlue,
+    required AppLocalizations loc,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1276,7 +1359,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Align(
           alignment: Alignment.centerRight,
           child: Text(
-            "تنظیمات کلودفلر Anycast تمیز (Mode 2)",
+            loc.cfSection,
             style: TextStyle(
               color: textPrimary,
               fontSize: 14,
@@ -1286,7 +1369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 12),
 
-        _buildFieldLabel("آی‌پی تمیز کلودفلر (Anycast Clean IP)", textSecondary),
+        _buildFieldLabel(loc.cfCleanIp, textSecondary),
         DropdownButtonFormField<String>(
           value: _selectedCfCleanPreset,
           dropdownColor: surfaceColor,
@@ -1320,7 +1403,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         if (_selectedCfCleanPreset == "Custom ...") ...[
           const SizedBox(height: 12),
-          _buildFieldLabel("آی‌پی یا دامنه تمیز دلخواه", textSecondary),
+          _buildFieldLabel(loc.customCleanIp, textSecondary),
           TextFormField(
             controller: _cfCleanIpController,
             style: TextStyle(
@@ -1352,7 +1435,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFieldLabel("پورت کلودفلر (استاندارد ۴۴۳)", textSecondary),
+                  _buildFieldLabel(loc.cfPort, textSecondary),
                   TextFormField(
                     controller: _cfCleanPortController,
                     keyboardType: TextInputType.number,
@@ -1383,7 +1466,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFieldLabel("تاخیر فرگمنت SNI (ms)", textSecondary),
+                  _buildFieldLabel(loc.fragmentDelay, textSecondary),
                   TextFormField(
                     controller: _cfFragmentDelayController,
                     keyboardType: TextInputType.number,
@@ -1413,7 +1496,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 14),
 
-        _buildFieldLabel("دامنه سرور / SNI هدف (Server SNI)", textSecondary),
+        _buildFieldLabel(loc.cfSni, textSecondary),
         TextFormField(
           controller: _cfServerSniController,
           style: TextStyle(
@@ -1447,6 +1530,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color textPrimary,
     required Color textSecondary,
     required Color primaryBlue,
+    required AppLocalizations loc,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1454,7 +1538,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Align(
           alignment: Alignment.centerRight,
           child: Text(
-            "تنظیمات تونل دی‌ان‌اس (Mode 3: DNS Tunnel)",
+            loc.dnsSection,
             style: TextStyle(
               color: textPrimary,
               fontSize: 14,
@@ -1462,14 +1546,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          "اتصال در زمان قطعی کامل اینترنت بین‌الملل از طریق کوئری‌های DNS به ریزالورها:",
-          style: TextStyle(fontSize: 11, color: textSecondary),
-        ),
         const SizedBox(height: 12),
 
-        _buildFieldLabel("پروتکل تونل DNS", textSecondary),
+        _buildFieldLabel(loc.dnsProto, textSecondary),
         DropdownButtonFormField<String>(
           value: _selectedDnsProtocol,
           dropdownColor: surfaceColor,
@@ -1507,7 +1586,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 14),
 
-        _buildFieldLabel("ساب‌دامین معتبر سرور (Subdomain)", textSecondary),
+        _buildFieldLabel(loc.dnsSubdomain, textSecondary),
         TextFormField(
           controller: _dnsSubdomainController,
           style: TextStyle(
@@ -1529,11 +1608,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           validator: (val) =>
-              (val == null || val.trim().isEmpty) ? "ساب‌دامین را وارد کنید" : null,
+              (val == null || val.trim().isEmpty) ? loc.dnsSubdomain : null,
         ),
         const SizedBox(height: 14),
 
-        _buildFieldLabel("کلید عمومی سرور (Public Key Hex)", textSecondary),
+        _buildFieldLabel(loc.dnsPubKey, textSecondary),
         TextFormField(
           controller: _dnsPublicKeyController,
           style: TextStyle(
@@ -1557,7 +1636,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 14),
 
-        _buildFieldLabel("ریزالور DNS (Resolver Endpoint)", textSecondary),
+        _buildFieldLabel(loc.dnsResolver, textSecondary),
         DropdownButtonFormField<String>(
           value: _selectedDnsResolver,
           dropdownColor: surfaceColor,
@@ -1584,7 +1663,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }),
             const DropdownMenuItem(
               value: "Custom ...",
-              child: Text("Custom ... (دلخواه)"),
+              child: Text("Custom ..."),
             ),
           ],
           onChanged: (val) {
@@ -1604,7 +1683,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         if (_selectedDnsResolver == "Custom ...") ...[
           const SizedBox(height: 12),
-          _buildFieldLabel("آدرس ریزالور دلخواه (DoH یا UDP IP:53)", textSecondary),
+          _buildFieldLabel(loc.customDomain, textSecondary),
           TextFormField(
             controller: _customDnsResolverController,
             style: TextStyle(
@@ -1613,7 +1692,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               fontFamily: 'monospace',
             ),
             decoration: InputDecoration(
-              hintText: "https://cloudflare-dns.com/dns-query یا 8.8.8.8:53",
+              hintText: "https://cloudflare-dns.com/dns-query",
               filled: true,
               fillColor: surfaceColor,
               border: OutlineInputBorder(
@@ -1636,7 +1715,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFieldLabel("نوع ریزالور", textSecondary),
+                  _buildFieldLabel(loc.dnsType, textSecondary),
                   DropdownButtonFormField<String>(
                     value: _dnsResolverType,
                     dropdownColor: surfaceColor,
@@ -1669,7 +1748,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFieldLabel("پورت لوکال تونل دی‌ان‌اس", textSecondary),
+                  _buildFieldLabel(loc.dnsLocalPort, textSecondary),
                   TextFormField(
                     controller: _dnsLocalPortController,
                     keyboardType: TextInputType.number,

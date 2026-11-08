@@ -56,3 +56,6 @@ app.*.map.json
 /android/app/*.jks
 /android/app/*.keystore
 *.keystore
+
+SNI-Spoofing-1.0/
+*.zip
