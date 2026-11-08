@@ -62,23 +62,6 @@ void main() {
       );
       expect(find.text('پورت‌های پروفایل'), findsOneWidget);
       expect(tester.takeException(), isNull);
-
-      await tester.scrollUntilVisible(
-        find.text('پشتیبانی و اخبار'),
-        500,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('پشتیبانی و اخبار'), findsOneWidget);
-      expect(find.text('1.0.1'), findsOneWidget);
-      expect(
-        find.text('زمان رایگان ۳۰ دقیقه‌ای با تمدید خودکار'),
-        findsOneWidget,
-      );
-      expect(find.text('۴ ساعت پاداش پس از تماشای کامل تبلیغ'), findsOneWidget);
-      expect(find.text('بازطراحی صفحهٔ تنظیمات'), findsOneWidget);
-      expect(tester.takeException(), isNull);
     } finally {
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();

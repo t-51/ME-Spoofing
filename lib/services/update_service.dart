@@ -24,7 +24,7 @@ class UpdateService {
   static final UpdateService instance = UpdateService._internal();
   UpdateService._internal();
 
-  static const String currentVersion = '1.0.2';
+  static const String currentVersion = '1.1.0';
   static const List<String> releaseApiUrls = [
     'https://api.github.com/repos/t-51/ME-Spoofing/releases/latest',
     'https://api.github.com/repos/t-51/MHPanel/releases/latest',

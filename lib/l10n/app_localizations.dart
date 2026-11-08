@@ -161,6 +161,19 @@ class AppLocalizations {
       'rewardEarned': 'پاداش دریافت شد!',
       'rewardNotice': '۴ ساعت به اعتبار اتصال افزوده شد و به صورت مداوم کسر می‌شود.',
       'great': 'عالی',
+      'communityTitle': 'اخبار، آموزش و پشتیبانی',
+      'communityDesc':
+          'برای اطلاع از آخرین تغییرات، آموزش‌ها و اخبار ME Spoofing به کانال تلگرام و گیت‌هاب ما بپیوندید:',
+      'telegramChannel': 'کانال تلگرام',
+      'telegramCopied': 'لینک کانال تلگرام کپی شد: https://t.me/kigaping_fa',
+      'projectGithub': 'گیت‌هاب پروژه',
+      'githubCopied':
+          'لینک مخزن گیت‌هاب کپی شد: https://github.com/t-51/ME-Spoofing',
+      'supportWithStar':
+          'اگر برنامه برایتان مفید بوده، با دادن Star در گیت‌هاب از پروژه حمایت کنید ⭐',
+      'joinTelegram': 'ورود به کانال تلگرام',
+      'starOnGithub': 'حمایت با Star در GitHub',
+      'couldNotOpenLink': 'بازکردن لینک ممکن نشد.',
     },
     'en': {
       'appName': 'ME Spoofing',
@@ -243,6 +256,19 @@ class AppLocalizations {
       'rewardEarned': 'Reward Earned!',
       'rewardNotice': '4 hours added to allowance and counts down continuously.',
       'great': 'Awesome',
+      'communityTitle': 'News, Guides & Support',
+      'communityDesc':
+          'Join our Telegram channel and GitHub for the latest updates, guides and announcements:',
+      'telegramChannel': 'Telegram Channel',
+      'telegramCopied': 'Telegram channel link copied: https://t.me/kigaping_fa',
+      'projectGithub': 'Project GitHub',
+      'githubCopied':
+          'GitHub repository link copied: https://github.com/t-51/ME-Spoofing',
+      'supportWithStar':
+          'If you find this app helpful, please support the project with a Star on GitHub ⭐',
+      'joinTelegram': 'Join Telegram Channel',
+      'starOnGithub': 'Support with Star on GitHub',
+      'couldNotOpenLink': 'Could not open the link.',
     },
     'ar': {
       'appName': 'ME Spoofing',
@@ -322,6 +348,18 @@ class AppLocalizations {
       'rewardEarned': 'تم استلام المكافأة!',
       'rewardNotice': 'تمت إضافة 4 ساعات وتتناقص باستمرار.',
       'great': 'رائع',
+      'communityTitle': 'الأخبار والدعم الفني',
+      'communityDesc':
+          'انضم إلى قناتنا على تيليجرام وجيت هاب لمعرفة آخر التحديثات والأخبار:',
+      'telegramChannel': 'قناة تيليجرام',
+      'telegramCopied': 'تم نسخ رابط قناة تيليجرام',
+      'projectGithub': 'جيت هاب المشروع',
+      'githubCopied': 'تم نسخ رابط مستودع جيت هاب',
+      'supportWithStar':
+          'إذا كان التطبيق مفيداً لك، ادعمنا بنجمة على جيت هاب ⭐',
+      'joinTelegram': 'الانضمام لقناة تيليجرام',
+      'starOnGithub': 'دعم المشروع بنجمة على GitHub',
+      'couldNotOpenLink': 'تعذر فتح الرابط.',
     },
     'zh': {
       'appName': 'ME Spoofing',
@@ -401,6 +439,16 @@ class AppLocalizations {
       'rewardEarned': '已获得奖励！',
       'rewardNotice': '已增加4小时时间，该时间持续计时。',
       'great': '很好',
+      'communityTitle': '资讯、教程与支持',
+      'communityDesc': '加入我们的 Telegram 频道和 GitHub 获取最新更新与使用指南：',
+      'telegramChannel': 'Telegram 频道',
+      'telegramCopied': 'Telegram 链接已复制',
+      'projectGithub': '项目 GitHub',
+      'githubCopied': 'GitHub 仓库链接已复制',
+      'supportWithStar': '如果您觉得此应用有用，请在 GitHub 上点亮 Star 支持我们 ⭐',
+      'joinTelegram': '加入 Telegram 频道',
+      'starOnGithub': '在 GitHub 上给个 Star',
+      'couldNotOpenLink': '无法打开链接。',
     },
     'ru': {
       'appName': 'ME Spoofing',
@@ -482,6 +530,18 @@ class AppLocalizations {
       'rewardEarned': 'Награда получена!',
       'rewardNotice': 'Добавлено 4 часа, время расходуется непрерывно.',
       'great': 'Отлично',
+      'communityTitle': 'Новости, инструкции и поддержка',
+      'communityDesc':
+          'Присоединяйтесь к нашему каналу в Telegram и репозиторию GitHub для новостей и инструкций:',
+      'telegramChannel': 'Канал Telegram',
+      'telegramCopied': 'Ссылка на Telegram скопирована',
+      'projectGithub': 'GitHub проекта',
+      'githubCopied': 'Ссылка на репозиторий скопирована',
+      'supportWithStar':
+          'Если приложение вам полезно, поддержите проект звездой на GitHub ⭐',
+      'joinTelegram': 'Перейти в Telegram',
+      'starOnGithub': 'Поставить Star на GitHub',
+      'couldNotOpenLink': 'Не удалось открыть ссылку.',
     },
     'es': {
       'appName': 'ME Spoofing',
@@ -988,6 +1048,16 @@ class AppLocalizations {
   String get copyPackageName => translate('copyPackageName');
   String get openV2rayng => translate('openV2rayng');
   String get openHapp => translate('openHapp');
+  String get communityTitle => translate('communityTitle');
+  String get communityDesc => translate('communityDesc');
+  String get telegramChannel => translate('telegramChannel');
+  String get telegramCopied => translate('telegramCopied');
+  String get projectGithub => translate('projectGithub');
+  String get githubCopied => translate('githubCopied');
+  String get supportWithStar => translate('supportWithStar');
+  String get joinTelegram => translate('joinTelegram');
+  String get starOnGithub => translate('starOnGithub');
+  String get couldNotOpenLink => translate('couldNotOpenLink');
 }
 
 class _AppLocalizationsDelegate

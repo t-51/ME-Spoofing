@@ -68,8 +68,24 @@ class ProxyManager extends ChangeNotifier {
   int _rewardExpirationTimestampMs = 0;
   int _freeSecondsRemaining = 1800;
   int _lastTimeWarningExpirationTimestampMs = 0;
+  bool _hasShown5MinWarning = false;
+  int _lastCommunityDialogTimestampMs = 0;
   Timer? _wallClockTimer;
   bool _expirationHandling = false;
+
+  int get lastCommunityDialogTimestampMs => _lastCommunityDialogTimestampMs;
+
+  bool get shouldShowCommunityDialogOnLaunch {
+    if (_lastCommunityDialogTimestampMs <= 0) return true;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return (now - _lastCommunityDialogTimestampMs) >=
+        const Duration(hours: 12).inMilliseconds;
+  }
+
+  void markCommunityDialogShown() {
+    _lastCommunityDialogTimestampMs = DateTime.now().millisecondsSinceEpoch;
+    saveSettingsToDisk();
+  }
 
   // --- MHPanel Dedicated Settings ---
   List<String> _mhServerHosts = ["212.227.143.16"];
@@ -156,7 +172,12 @@ class ProxyManager extends ChangeNotifier {
         if (left <= 0) {
           unawaited(_renewExpiredAllowance(disconnectProxy: true));
         } else if (left <= timeWarningThreshold.inSeconds) {
-          _notifyTimeEnding();
+          if (!_hasShown5MinWarning) {
+            _hasShown5MinWarning = true;
+            _notifyTimeEnding();
+          }
+        } else {
+          _hasShown5MinWarning = false;
         }
       }
       notifyListeners();
@@ -164,15 +185,11 @@ class ProxyManager extends ChangeNotifier {
   }
 
   void _notifyTimeEnding() {
-    final currentRemain = remainingSeconds;
-    if (_lastTimeWarningExpirationTimestampMs == currentRemain) return;
-    _lastTimeWarningExpirationTimestampMs = currentRemain;
     unawaited(() async {
       try {
         await SystemNotificationService.instance.showTimeWarning(
           remaining: timeWarningThreshold,
         );
-        await saveSettingsToDisk(throwOnError: true);
       } catch (error) {
         log("❌ نمایش اعلان نزدیک‌شدن به پایان زمان ناموفق بود: $error");
       }
@@ -193,6 +210,7 @@ class ProxyManager extends ChangeNotifier {
       _proxyRequested = false;
       _freeSecondsRemaining = freeRenewalTime.inSeconds;
       _lastTimeWarningExpirationTimestampMs = 0;
+      _hasShown5MinWarning = false;
       log("⏳ زمان رایگان تمدید شد؛ برای اتصال دوباره دکمهٔ اتصال را بزنید.");
       notifyListeners();
       await saveSettingsToDisk(throwOnError: true);
@@ -261,6 +279,7 @@ class ProxyManager extends ChangeNotifier {
     } else {
       _rewardExpirationTimestampMs += rewardedTime.inMilliseconds;
     }
+    _hasShown5MinWarning = false;
     log(
       "🎁 چهار ساعت پاداش تبلیغاتی افزوده شد؛ زمان باقی‌مانده: $remainingTimeFormatted",
     );
@@ -759,6 +778,7 @@ class ProxyManager extends ChangeNotifier {
         'freeSecondsRemaining': _freeSecondsRemaining,
         'lastTimeWarningExpirationTimestampMs':
             _lastTimeWarningExpirationTimestampMs,
+        'lastCommunityDialogTimestampMs': _lastCommunityDialogTimestampMs,
         'proxyRequested': _proxyRequested,
         'transportMode': _transportMode.id,
         'cfCleanIp': _cfCleanIp,
@@ -838,6 +858,10 @@ class ProxyManager extends ChangeNotifier {
       if (data['lastTimeWarningExpirationTimestampMs'] is int) {
         _lastTimeWarningExpirationTimestampMs =
             data['lastTimeWarningExpirationTimestampMs'] as int;
+      }
+      if (data['lastCommunityDialogTimestampMs'] is int) {
+        _lastCommunityDialogTimestampMs =
+            data['lastCommunityDialogTimestampMs'] as int;
       }
 
       if (_freeSecondsRemaining <= 0 && rewardRemainingSeconds <= 0) {

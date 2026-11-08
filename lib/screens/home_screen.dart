@@ -77,6 +77,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _scheduleCommunityDialog({VoidCallback? onDismissed}) {
     if (_communityDialogScheduled) return;
+    if (!_manager.shouldShowCommunityDialogOnLaunch) {
+      onDismissed?.call();
+      return;
+    }
     _communityDialogScheduled = true;
     Future.delayed(const Duration(milliseconds: 600), () {
       if (!mounted ||
@@ -84,6 +88,7 @@ class _HomeScreenState extends State<HomeScreen>
         _communityDialogScheduled = false;
         return;
       }
+      _manager.markCommunityDialogShown();
       showCommunityDialog(context, onDismissed: onDismissed);
     });
   }
