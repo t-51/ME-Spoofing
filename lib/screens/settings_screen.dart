@@ -132,11 +132,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       text: _manager.dnsLocalPort.toString(),
     );
 
-    final resolverPresets =
-        DnsResolverOption.presets.map((e) => e.endpoint).toList();
-    if (resolverPresets.contains(_manager.dnsResolver)) {
-      _selectedDnsResolver = _manager.dnsResolver;
-      _customDnsResolverController = TextEditingController(text: "");
+    final matchingPreset = DnsResolverOption.presets
+        .where((e) =>
+            e.endpoint == _manager.dnsResolver &&
+            e.type == _manager.dnsResolverType)
+        .firstOrNull ??
+        DnsResolverOption.presets
+            .where((e) => e.endpoint == _manager.dnsResolver)
+            .firstOrNull;
+
+    if (matchingPreset != null) {
+      _selectedDnsResolver = matchingPreset.name;
+      _customDnsResolverController =
+          TextEditingController(text: matchingPreset.endpoint);
     } else {
       _selectedDnsResolver = "Custom ...";
       _customDnsResolverController = TextEditingController(
@@ -265,9 +273,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Save Mode 3 Settings
         String finalResolver = _customDnsResolverController.text.trim();
         if (finalResolver.isEmpty) {
-          finalResolver = _selectedDnsResolver != "Custom ..."
-              ? _selectedDnsResolver
-              : "8.8.8.8:53, 1.1.1.1:53";
+          final opt = DnsResolverOption.presets
+              .where((e) => e.name == _selectedDnsResolver)
+              .firstOrNull;
+          finalResolver = opt?.endpoint ?? "8.8.8.8:53, 1.1.1.1:53";
         }
 
         _manager.updateDnsTunnelConfig(
@@ -1131,7 +1140,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         _buildFieldLabel(loc.fakeSni, textSecondary),
         DropdownButtonFormField<String>(
-          value: _selectedFakeSni,
+          value: _fakeSniPresets.contains(_selectedFakeSni)
+              ? _selectedFakeSni
+              : "Custom ...",
           dropdownColor: surfaceColor,
           style: TextStyle(color: textPrimary, fontSize: 13.5),
           decoration: InputDecoration(
@@ -1234,7 +1245,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         _buildFieldLabel(loc.cfCleanIp, textSecondary),
         DropdownButtonFormField<String>(
-          value: _selectedCfCleanPreset,
+          value: _cfCleanPresets.contains(_selectedCfCleanPreset)
+              ? _selectedCfCleanPreset
+              : "Custom ...",
           dropdownColor: surfaceColor,
           style: TextStyle(color: textPrimary, fontSize: 13.5),
           decoration: InputDecoration(
@@ -1413,7 +1426,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         _buildFieldLabel(loc.dnsProto, textSecondary),
         DropdownButtonFormField<String>(
-          value: _selectedDnsProtocol,
+          value: DnsTunnelProtocol.values.any((p) => p.id == _selectedDnsProtocol)
+              ? _selectedDnsProtocol
+              : DnsTunnelProtocol.vayDns.id,
           dropdownColor: surfaceColor,
           style: TextStyle(color: textPrimary, fontSize: 13.5),
           decoration: InputDecoration(
@@ -1501,7 +1516,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
         _buildFieldLabel(loc.dnsResolver, textSecondary),
         DropdownButtonFormField<String>(
-          value: _selectedDnsResolver,
+          value: DnsResolverOption.presets.any((r) => r.name == _selectedDnsResolver)
+              ? _selectedDnsResolver
+              : "Custom ...",
           dropdownColor: surfaceColor,
           isExpanded: true,
           style: TextStyle(color: textPrimary, fontSize: 13),
@@ -1520,8 +1537,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           items: [
             ...DnsResolverOption.presets.map((r) {
               return DropdownMenuItem(
-                value: r.endpoint,
-                child: Text("${r.name} (${r.type.toUpperCase()})"),
+                value: r.name,
+                child: Text(
+                  r.name,
+                  overflow: TextOverflow.ellipsis,
+                ),
               );
             }),
             const DropdownMenuItem(
@@ -1534,11 +1554,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               setState(() {
                 _selectedDnsResolver = val;
                 if (val != "Custom ...") {
-                  _customDnsResolverController.text = val;
                   final opt = DnsResolverOption.presets
-                      .where((e) => e.endpoint == val)
+                      .where((e) => e.name == val)
                       .firstOrNull;
                   if (opt != null) {
+                    _customDnsResolverController.text = opt.endpoint;
                     _dnsResolverType = opt.type;
                   }
                 }
@@ -1588,7 +1608,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   _buildFieldLabel(loc.dnsType, textSecondary),
                   DropdownButtonFormField<String>(
-                    value: _dnsResolverType,
+                    value: ["udp", "tcp", "doh", "dot"].contains(_dnsResolverType)
+                        ? _dnsResolverType
+                        : "udp",
                     dropdownColor: surfaceColor,
                     style: TextStyle(color: textPrimary, fontSize: 13),
                     decoration: InputDecoration(

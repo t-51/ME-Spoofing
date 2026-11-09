@@ -16,13 +16,16 @@ void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
       valueListenable: ThemeController.instance,
       builder: (context, isDark, _) {
         final bgColor = isDark ? const Color(0xFF131820) : Colors.white;
-        final cardBg =
-            isDark ? const Color(0xFF0D1117) : const Color(0xFFF7F8FA);
-        final borderColor =
-            isDark ? const Color(0xFF21262D) : const Color(0xFFE5E7EB);
+        final cardBg = isDark
+            ? const Color(0xFF0D1117)
+            : const Color(0xFFF7F8FA);
+        final borderColor = isDark
+            ? const Color(0xFF21262D)
+            : const Color(0xFFE5E7EB);
         final titleColor = isDark ? Colors.white : const Color(0xFF111827);
-        final subColor =
-            isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280);
+        final subColor = isDark
+            ? const Color(0xFF8B949E)
+            : const Color(0xFF6B7280);
         const primaryBlue = Color(0xFF2855D9);
 
         return Directionality(
@@ -134,9 +137,7 @@ void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
                           tooltip: loc.telegramChannel,
                           onPressed: () {
                             Clipboard.setData(
-                              const ClipboardData(
-                                text: _telegramChannelUrl,
-                              ),
+                              const ClipboardData(text: _telegramChannelUrl),
                             );
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -226,7 +227,11 @@ void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
                   Text(
                     loc.supportWithStar,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: subColor, height: 1.5),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: subColor,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 14),
                   OutlinedButton.icon(
@@ -245,7 +250,10 @@ void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
                     ),
                     label: Text(
                       loc.joinTelegram,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     onPressed: () => _openCommunityLink(
                       context,
@@ -267,7 +275,10 @@ void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
                     icon: const Icon(Icons.star_rounded, size: 18),
                     label: Text(
                       loc.starOnGithub,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     onPressed: () => _openCommunityLink(
                       context,
@@ -283,7 +294,10 @@ void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
                 onPressed: () => Navigator.pop(ctx),
                 child: Text(
                   loc.close,
-                  style: TextStyle(color: subColor, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: subColor,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -294,7 +308,11 @@ void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
   ).then((_) => onDismissed?.call());
 }
 
-Future<void> _openCommunityLink(BuildContext context, Uri uri, String errorMsg) async {
+Future<void> _openCommunityLink(
+  BuildContext context,
+  Uri uri,
+  String errorMsg,
+) async {
   try {
     final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && context.mounted) {
