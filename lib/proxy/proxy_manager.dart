@@ -548,6 +548,7 @@ class ProxyManager extends ChangeNotifier {
   void log(String message) {
     final timestamp = DateTime.now().toIso8601String().substring(11, 19);
     final logLine = "[$timestamp] $message";
+    debugPrint(logLine);
 
     _logs.add(logLine);
     if (_logs.length > 200) {

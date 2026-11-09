@@ -30,6 +30,12 @@ class _LogsScreenState extends State<LogsScreen> {
     }
 
     switch (_selectedFilterId) {
+      case "dns":
+        return log.contains("[DNS Tunnel]") ||
+            log.contains("DNS") ||
+            log.contains("Resolver") ||
+            log.contains("VayDNS") ||
+            log.contains("DNSTT");
       case "fake":
         return log.contains("Decoy") || log.contains("Injected");
       case "fragment":
@@ -38,12 +44,19 @@ class _LogsScreenState extends State<LogsScreen> {
         return log.contains("Listening") ||
             log.contains("listening") ||
             log.contains("Connected") ||
+            log.contains("Client connected") ||
+            log.contains("session ended") ||
+            log.contains("Session #") ||
             log.contains("🚀");
       case "errors":
         return log.contains("failed") ||
             log.contains("Error") ||
+            log.contains("error") ||
             log.contains("❌") ||
-            log.contains("⚠️");
+            log.contains("⚠️") ||
+            log.contains("timeout") ||
+            log.contains("NXDOMAIN") ||
+            log.contains("SERVFAIL");
       default:
         return true;
     }
@@ -64,10 +77,11 @@ class _LogsScreenState extends State<LogsScreen> {
 
     final filters = [
       {'id': 'all', 'label': loc.all},
-      {'id': 'fake', 'label': loc.fakeInjection},
-      {'id': 'fragment', 'label': loc.fragment},
+      {'id': 'dns', 'label': loc.dnsTunnelTab},
       {'id': 'connections', 'label': loc.connections},
       {'id': 'errors', 'label': loc.errors},
+      {'id': 'fake', 'label': loc.fakeInjection},
+      {'id': 'fragment', 'label': loc.fragment},
     ];
 
     return Scaffold(
@@ -255,19 +269,26 @@ class _LogsScreenState extends State<LogsScreen> {
                     final logLine = filteredLogs[index];
                     Color textColor = defaultLogTextColor;
 
-                    if (logLine.contains("Fragmented") ||
-                        logLine.contains("Decoy") ||
-                        logLine.contains("SNI")) {
-                      textColor = const Color(0xFF2855D9);
-                    } else if (logLine.contains("failed") ||
+                    if (logLine.contains("failed") ||
                         logLine.contains("Error") ||
                         logLine.contains("❌") ||
-                        logLine.contains("⚠️")) {
+                        logLine.contains("⚠️") ||
+                        logLine.contains("NXDOMAIN") ||
+                        logLine.contains("SERVFAIL") ||
+                        logLine.contains("timeout")) {
                       textColor = const Color(0xFFD9383A);
                     } else if (logLine.contains("listening") ||
                         logLine.contains("🚀") ||
-                        logLine.contains("Listening")) {
+                        logLine.contains("Listening") ||
+                        logLine.contains("Handshake successful") ||
+                        logLine.contains("Client connected")) {
                       textColor = const Color(0xFF10B981);
+                    } else if (logLine.contains("[DNS Tunnel]")) {
+                      textColor = const Color(0xFF0EA5E9);
+                    } else if (logLine.contains("Fragmented") ||
+                        logLine.contains("Decoy") ||
+                        logLine.contains("SNI")) {
+                      textColor = const Color(0xFF2855D9);
                     }
 
                     return Padding(

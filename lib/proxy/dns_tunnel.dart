@@ -383,16 +383,28 @@ class DnsTunnel {
     final res = await _sendWithFallback(queryId, queryPacket);
     sw.stop();
 
-    if (res != null && res.isNotEmpty) {
+    if (res != null && res.length >= 12) {
       lastLatencyMs = sw.elapsedMilliseconds;
-      onLog(
-        '⚡ [DNS Tunnel] Handshake successful! Resolver responded in ${lastLatencyMs}ms (Status: CONNECTED & FLOWING)',
-      );
-    } else if (res != null) {
-      lastLatencyMs = sw.elapsedMilliseconds;
-      onLog(
-        '⚡ [DNS Tunnel] Resolver reachable (${lastLatencyMs}ms). Tunnel ready for client traffic.',
-      );
+      final rcode = res[3] & 0x0F;
+      final ancount = (res[6] << 8) | res[7];
+
+      if (rcode == 0 && ancount > 0) {
+        onLog(
+          '⚡ [DNS Tunnel] Handshake successful! DNS Tunnel Server answered in ${lastLatencyMs}ms (Status: CONNECTED & FLOWING)',
+        );
+      } else if (rcode == 3) {
+        onLog(
+          '⚠️ [DNS Tunnel] Resolver reachable (${lastLatencyMs}ms) but returned NXDOMAIN for $probeDomain. (Subdomain does not exist or NS delegation is missing in DNS!).',
+        );
+      } else if (rcode == 2) {
+        onLog(
+          '⚠️ [DNS Tunnel] Resolver reachable (${lastLatencyMs}ms) but returned SERVFAIL for $probeDomain. (Authoritative DNS tunnel server is offline or unreachable).',
+        );
+      } else {
+        onLog(
+          '⚡ [DNS Tunnel] Resolver reachable (${lastLatencyMs}ms). Waiting for client tunnel queries (RCODE: $rcode, Answers: $ancount).',
+        );
+      }
     } else {
       lastLatencyMs = null;
       onLog(
@@ -529,6 +541,10 @@ class DnsTunnel {
               onStats(0, serverBytes.length);
               onLog(
                 '📥 [DNS Tunnel] Reply received ${serverBytes.length}B ➔ Delivered to client',
+              );
+            } else if (!isClosed) {
+              onLog(
+                '⚠️ [DNS Tunnel] No server response for ${chunk.length}B via $subdomain. (Check subdomain NS records and DNS tunnel daemon).',
               );
             }
           }
@@ -667,10 +683,25 @@ class DnsTunnel {
     int queryId,
     Uint8List packet,
   ) async {
-    if (_udpSocket == null) return null;
+    if (_udpSocket == null) {
+      try {
+        _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+        _udpSocket!.listen(_handleUdpMessage, onError: (err) {
+          if (!_isStopping) onLog('⚠️ DNS UDP Socket error: $err');
+        });
+      } catch (e) {
+        onLog('⚠️ Failed to initialize UDP socket: $e');
+        return null;
+      }
+    }
 
     try {
-      final targetAddr = InternetAddress(endpoint.host);
+      InternetAddress? targetAddr = InternetAddress.tryParse(endpoint.host);
+      if (targetAddr == null) {
+        final addrs = await InternetAddress.lookup(endpoint.host);
+        if (addrs.isEmpty) return null;
+        targetAddr = addrs.first;
+      }
       final completer = Completer<Uint8List>();
       _pendingQueries[queryId] = completer;
 

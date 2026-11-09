@@ -100,6 +100,7 @@ class AppLocalizations {
       'logsTitle': 'لاگ‌های زنده اتصال',
       'searchLogs': 'جستجو در لاگ‌ها...',
       'all': 'همه',
+      'dnsTunnelTab': 'تونل دی‌ان‌اس (DNS)',
       'fakeInjection': 'تزریق فیک',
       'fragment': 'فرگمنت',
       'errors': 'خطاها',
@@ -217,6 +218,7 @@ class AppLocalizations {
       'logsTitle': 'Live Connection Logs',
       'searchLogs': 'Search logs...',
       'all': 'All',
+      'dnsTunnelTab': 'DNS Tunnel',
       'fakeInjection': 'Fake Decoy',
       'fragment': 'Fragment',
       'errors': 'Errors',
@@ -333,6 +335,7 @@ class AppLocalizations {
       'logsTitle': 'سجلات الاتصال المباشرة',
       'searchLogs': 'بحث في السجلات...',
       'all': 'الكل',
+      'dnsTunnelTab': 'نفق DNS',
       'fakeInjection': 'حقن وهمي',
       'fragment': 'تجزئة',
       'errors': 'أخطاء',
@@ -446,6 +449,7 @@ class AppLocalizations {
       'logsTitle': '实时连接日志',
       'searchLogs': '搜索日志...',
       'all': '全部',
+      'dnsTunnelTab': 'DNS 隧道',
       'fakeInjection': '伪装包',
       'fragment': '分片',
       'errors': '错误',
@@ -558,6 +562,7 @@ class AppLocalizations {
       'logsTitle': 'Живые логи соединений',
       'searchLogs': 'Поиск в логах...',
       'all': 'Все',
+      'dnsTunnelTab': 'DNS-туннель',
       'fakeInjection': 'Фейк-пакет',
       'fragment': 'Фрагмент',
       'errors': 'Ошибки',
@@ -673,6 +678,7 @@ class AppLocalizations {
       'logsTitle': 'Registros en vivo',
       'searchLogs': 'Buscar registros...',
       'all': 'Todos',
+      'dnsTunnelTab': 'Túnel DNS',
       'fakeInjection': 'Paquete señuelo',
       'fragment': 'Fragmento',
       'errors': 'Errores',
@@ -786,6 +792,7 @@ class AppLocalizations {
       'logsTitle': 'Registri di connessione in tempo reale',
       'searchLogs': 'Cerca nei registri...',
       'all': 'Tutti',
+      'dnsTunnelTab': 'Tunnel DNS',
       'fakeInjection': 'Pacchetto esca',
       'fragment': 'Frammento',
       'errors': 'Errori',
@@ -899,6 +906,7 @@ class AppLocalizations {
       'logsTitle': 'Live-Verbindungsprotokolle',
       'searchLogs': 'Protokolle durchsuchen...',
       'all': 'Alle',
+      'dnsTunnelTab': 'DNS-Tunnel',
       'fakeInjection': 'Fake-Paket',
       'fragment': 'Fragment',
       'errors': 'Fehler',
@@ -1012,6 +1020,7 @@ class AppLocalizations {
       'logsTitle': 'Journaux de connexion en direct',
       'searchLogs': 'Rechercher...',
       'all': 'Tous',
+      'dnsTunnelTab': 'Tunnel DNS',
       'fakeInjection': 'Paquet leurre',
       'fragment': 'Fragment',
       'errors': 'Erreurs',
@@ -1124,6 +1133,7 @@ class AppLocalizations {
       'logsTitle': 'लाइव कनेक्शन लॉग्स',
       'searchLogs': 'लॉग्स खोजें...',
       'all': 'सभी',
+      'dnsTunnelTab': 'DNS टनल',
       'fakeInjection': 'नकली पैकेट',
       'fragment': 'फ़्रेगमेंट',
       'errors': 'त्रुटियां',
@@ -1246,6 +1256,7 @@ class AppLocalizations {
   String get logsTitle => translate('logsTitle');
   String get searchLogs => translate('searchLogs');
   String get all => translate('all');
+  String get dnsTunnelTab => translate('dnsTunnelTab');
   String get fakeInjection => translate('fakeInjection');
   String get fragment => translate('fragment');
   String get errors => translate('errors');
