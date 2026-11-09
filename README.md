@@ -35,7 +35,7 @@
    * عبور ترافیک از شبکه Anycast کلادفلر با آی‌پی‌های تمیز و بازنویسی داینامیک SNI.
    * مناسب شرایطی که آی‌پی سرور اصلی فیلتر شده است.
 3. **حالت ۳ - تونل DNS (شامل VayDNS، DNSTT، Slipstream):**
-   * کپسوله‌سازی ترافیک درون درخواست‌های DNS (روی پروتکل‌های DoH یا UDP 53) در زمان اختلال یا بسته بودن پورت‌های مستقیم.
+   * کپسوله‌سازی ترافیک درون درخواست‌های DNS (روی پروتکل‌های DoH، DoT، TCP یا UDP) با پشتیبانی همزمان از چند ریزالور و سنجش زنده تاخیر (Ping).
 
 ### ⚡ ویژگی‌های کلیدی
 * **تولید خودکار پروفایل روتینگ:** ایجاد رول‌های روتینگ اختصاصی برای نرم‌افزارهای محبوب (Happ, v2rayNG, Sing-box, Npv Tunnel) تنها با یک کلیک.
@@ -69,7 +69,7 @@ Unlike conventional VPN applications, **ME Spoofing does not register or use And
    * Routes traffic through verified, unblocked Cloudflare Anycast IP addresses.
    * Dynamic SNI rewriting and fragmentation prevents SNI-based filtering on ISP networks.
 3. **Mode 3: DNS Tunnel Transport (VayDNS, DNSTT, Slipstream, NoizDNS):**
-   * Encapsulates connection streams into DNS requests (via DoH or standard UDP 53) when direct TCP/UDP ports are blocked.
+   * Encapsulates connection streams into DNS requests (via UDP 53, TCP 53, DoH 443, or DoT 853) with multi-resolver fallback and live ping latency telemetry.
 
 ### ⚡ Key Features
 * **One-Click Client Routing Profiles:** Generate optimized routing rules for Happ, v2rayNG, Sing-box, and Npv Tunnel instantly.
@@ -97,7 +97,7 @@ Unlike conventional VPN applications, **ME Spoofing does not register or use And
 ### 🚀 أوضاع النقل الثلاثة (Multi-Transport)
 1. **الوضع 1 - مباشر مع تجزئة SNI (المنفذ 15443):** اتصال مباشر مع خوادم MHPanel وتجزئة حزم TLS ClientHello مع تأخيرات زمنية وحقن SNI مموه.
 2. **الوضع 2 - وسيط Cloudflare Clean IP (المنفذ 443):** توجيه البيانات عبر عناوين Cloudflare Anycast النظيفة غير المحجوبة مع إعادة كتابة SNI بشكل ديناميكي.
-3. **الوضع 3 - نفق DNS (تشمل VayDNS و DNSTT و Slipstream):** تغليف حركة البيانات داخل استعلامات DNS (عبر DoH أو UDP 53) عند حظر الاتصالات المباشرة.
+3. **الوضع 3 - نفق DNS (تشمل VayDNS و DNSTT و Slipstream):** تغليف حركة البيانات داخل استعلامات DNS (عبر UDP أو TCP أو DoH أو DoT 853) مع دعم المحللات المتعددة والقياس اللحظي للاستجابة.
 
 ### ⚡ الميزات الرئيسية
 * **إنشاء ملفات التوجيه بنقرة واحدة:** إنشاء قواعد التوجيه التلقائية لتطبيقات Happ و v2rayNG و Sing-box و Npv Tunnel.
@@ -129,7 +129,7 @@ Unlike conventional VPN applications, **ME Spoofing does not register or use And
    * 通过已验证的未封锁 Cloudflare Anycast IP 进行流量传输。
    * 动态重写 SNI 配合分片，防御运营商基于 SNI 的拦截。
 3. **模式 3：DNS 隧道传输（VayDNS、DNSTT、Slipstream）：**
-   * 当所有直接 TCP/UDP 端口均被封锁时，将流量封装到 DNS 请求中（支持 DoH 与标准 UDP 53）。
+   * 支持 UDP 53、TCP 53、DoH 443 与 DoT 853 四大传输协议，具备多解析器并发容灾与实时 Ping 延迟遥测。
 
 ### ⚡ 核心功能
 * **一键生成客户端路由规则：** 自动为 Happ、v2rayNG、Sing-box 和 Npv Tunnel 生成优化的路由配置规则。
@@ -159,7 +159,7 @@ Unlike conventional VPN applications, **ME Spoofing does not register or use And
 2. **Режим 2: Транспорт Cloudflare Clean IP (Порт 443):**
    * Маршрутизация через белые Anycast IP Cloudflare с динамической перезаписью SNI.
 3. **Режим 3: DNS-туннель (VayDNS, DNSTT, Slipstream):**
-   * Инкапсуляция трафика в DNS-запросы (DoH или UDP 53) в условиях жесткой блокировки портов.
+   * Инкапсуляция трафика в DNS-запросы (UDP 53, TCP 53, DoH 443 или DoT 853) с поддержкой нескольких резолверов и живым мониторингом пинга.
 
 ### ⚡ Ключевые возможности
 * **Генератор профилей маршрутизации в один клик:** Мгновенное создание правил обхода для Happ, v2rayNG, Sing-box и Npv Tunnel.
@@ -184,7 +184,7 @@ A diferencia de las aplicaciones VPN convencionales, **ME Spoofing no utiliza la
 ### 🚀 Tres modos de transporte
 1. **Modo 1: SNI directo y fragmentación TCP (Puerto 15443):** Conexión directa con fragmentación de TLS ClientHello e inyección de SNI falso.
 2. **Modo 2: Transporte Cloudflare Clean IP (Puerto 443):** Tráfico a través de IPs Anycast de Cloudflare con reescritura dinámica de SNI.
-3. **Modo 3: Túnel DNS (VayDNS, DNSTT, Slipstream):** Encapsulación de flujos de datos en consultas DNS (DoH o UDP 53).
+3. **Modo 3: Túnel DNS (VayDNS, DNSTT, Slipstream):** Encapsulación de flujos de datos en consultas DNS (DoH, DoT 853, TCP 53 o UDP 53) con soporte multi-resolver y telemetría de latencia en vivo.
 
 ### ⚡ Características principales
 * **Perfiles de enrutamiento con un solo clic:** Reglas optimizadas automáticas para Happ, v2rayNG, Sing-box y Npv Tunnel.
@@ -208,7 +208,7 @@ A diferencia de las aplicaciones VPN convencionales, **ME Spoofing no utiliza la
 ### 🚀 Tre modalità di trasporto
 1. **Modalità 1: SNI diretto e frammentazione TCP (Porta 15443):** Frammentazione del TLS ClientHello e SNI esca.
 2. **Modalità 2: Cloudflare Clean IP (Porta 443):** Instradamento tramite IP Anycast Cloudflare e riscrittura dinamica dell'SNI.
-3. **Modalità 3: Tunnel DNS (VayDNS, DNSTT, Slipstream):** Incapsulamento del traffico in query DNS (DoH / UDP 53).
+3. **Modalità 3: Tunnel DNS (VayDNS, DNSTT, Slipstream):** Incapsulamento del traffico in query DNS (DoH, DoT 853, TCP 53 o UDP 53) con failover multi-resolver e latenza in tempo reale.
 
 ### ⚡ Funzionalità principali
 * **Profili di routing in un clic:** Generazione automatica delle regole di routing per Happ, v2rayNG, Sing-box e Npv Tunnel.
@@ -231,7 +231,7 @@ A diferencia de las aplicaciones VPN convencionales, **ME Spoofing no utiliza la
 ### 🚀 Drei Transport-Modi
 1. **Modus 1: Direktes SNI & TCP-Fragmentierung (Port 15443):** TLS ClientHello-Segmentierung und Fake-SNI-Injektion.
 2. **Modus 2: Cloudflare Clean IP (Port 443):** Routing über saubere Cloudflare Anycast-IPs mit SNI-Umschreibung.
-3. **Modus 3: DNS-Tunnel (VayDNS, DNSTT, Slipstream):** Kapselung in DNS-Anfragen (DoH oder UDP 53).
+3. **Modus 3: DNS-Tunnel (VayDNS, DNSTT, Slipstream):** Kapselung in DNS-Anfragen (DoH, DoT 853, TCP 53 oder UDP 53) mit Multi-Resolver-Ausfallsicherung und Live-Ping-Telemetrie.
 
 ### ⚡ Hauptmerkmale
 * **1-Klick Client-Routing-Profile:** Erstellt Routing-Regeln für Happ, v2rayNG, Sing-box und Npv Tunnel mit einem Fingertipp.
@@ -254,7 +254,7 @@ A diferencia de las aplicaciones VPN convencionales, **ME Spoofing no utiliza la
 ### 🚀 Trois modes de transport
 1. **Mode 1 : SNI direct et fragmentation TCP (Port 15443) :** Segmentation de TLS ClientHello et injection de SNI leurre.
 2. **Mode 2 : Transport Cloudflare Clean IP (Port 443) :** Routage via les adresses IP Anycast propres de Cloudflare.
-3. **Mode 3 : Tunnel DNS (VayDNS, DNSTT, Slipstream) :** Encapsulation du trafic dans des requêtes DNS (DoH ou UDP 53).
+3. **Mode 3 : Tunnel DNS (VayDNS, DNSTT, Slipstream) :** Encapsulation du trafic dans des requêtes DNS (DoH, DoT 853, TCP 53 ou UDP 53) avec basculement multi-résolveurs et télémétrie de ping en direct.
 
 ### ⚡ Fonctionnalités clés
 * **Profils de routage en un clic :** Règles de routage instantanées pour Happ, v2rayNG, Sing-box et Npv Tunnel.
@@ -277,7 +277,7 @@ A diferencia de las aplicaciones VPN convencionales, **ME Spoofing no utiliza la
 ### 🚀 तीन मल्टी-ट्रांसपोर्ट मोड्स
 1. **मोड 1 - डायरेक्ट एसएनआई और टीसीपी फ्रैग्मेंटेशन (पोर्ट 15443):** TLS ClientHello का माइक्रोसेकंड फ्रैग्मेंटेशन और नकली SNI इंजेक्शन।
 2. **मोड 2 - क्लाउडफ्लेयर क्लीन आईपी ट्रांसपोर्ट (पोर्ट 443):** स्वच्छ Anycast IP और डायनामिक SNI रीराइटिंग के माध्यम से सुरक्षित कनेक्शन।
-3. **मोड 3 - डीएनएस टनल (VayDNS, DNSTT, Slipstream):** प्रत्यक्ष पोर्ट ब्लॉक होने पर डीएनएस क्वेरीज़ (DoH या UDP 53) के माध्यम से डेटा ट्रांसफर।
+3. **मोड 3 - डीएनएस टनल (VayDNS, DNSTT, Slipstream):** 4 ट्रांसपोर्ट्स (UDP 53, TCP 53, DoH 443, DoT 853), मल्टी-रिज़ॉल्वर फेलओवर और लाइव लेटेंसी टेलीमेट्री के साथ डेटा ट्रांसफर।
 
 ### ⚡ मुख्य विशेषताएं
 * **एक क्लिक में क्लाइंट रूटिंग प्रोफाइल:** Happ, v2rayNG, Sing-box और Npv Tunnel के लिए तत्काल रूटिंग नियम।

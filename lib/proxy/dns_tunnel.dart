@@ -40,11 +40,30 @@ enum DnsTunnelProtocol {
   }
 }
 
-/// Pre-configured DNS Resolvers with Iran fallback hierarchy per specification.
+/// Parsed endpoint representation for DNS resolvers (supports numeric IP and domain).
+class DnsResolverEndpoint {
+  final String raw;
+  final String host;
+  final int port;
+  final String type; // 'udp', 'tcp', 'doh', 'dot'
+  final String url; // For DoH
+
+  const DnsResolverEndpoint({
+    required this.raw,
+    required this.host,
+    required this.port,
+    required this.type,
+    required this.url,
+  });
+
+  String get display => type == 'doh' ? url : '$host:$port';
+}
+
+/// Pre-configured DNS Resolvers supporting multi-transport (UDP, TCP, DoH, DoT).
 class DnsResolverOption {
   final String name;
   final String endpoint;
-  final String type; // 'doh' or 'udp'
+  final String type; // 'udp', 'tcp', 'doh', 'dot'
   final String description;
 
   const DnsResolverOption({
@@ -56,40 +75,46 @@ class DnsResolverOption {
 
   static const List<DnsResolverOption> presets = [
     DnsResolverOption(
-      name: 'Cloudflare DoH',
-      endpoint: 'https://cloudflare-dns.com/dns-query',
+      name: 'Google & Cloudflare (UDP 53)',
+      endpoint: '8.8.8.8:53, 1.1.1.1:53',
+      type: 'udp',
+      description: 'Google & Cloudflare Anycast (UDP 53)',
+    ),
+    DnsResolverOption(
+      name: 'Google & Cloudflare (TCP 53)',
+      endpoint: '8.8.8.8:53, 1.1.1.1:53',
+      type: 'tcp',
+      description: 'Google & Cloudflare Anycast (TCP 53)',
+    ),
+    DnsResolverOption(
+      name: 'Cloudflare DoH (HTTPS 443)',
+      endpoint: 'https://cloudflare-dns.com/dns-query, https://1.1.1.1/dns-query',
       type: 'doh',
-      description: 'Cloudflare DoH (Encrypted)',
+      description: 'Cloudflare Encrypted DoH',
     ),
     DnsResolverOption(
-      name: 'Google DoH',
-      endpoint: 'https://dns.google/dns-query',
+      name: 'Google DoH (HTTPS 443)',
+      endpoint: 'https://dns.google/dns-query, https://8.8.8.8/dns-query',
       type: 'doh',
-      description: 'Google DoH (Anycast)',
+      description: 'Google Anycast DoH',
     ),
     DnsResolverOption(
-      name: 'Google Public DNS',
-      endpoint: '8.8.8.8:53',
-      type: 'udp',
-      description: 'Google Public DNS (UDP 53)',
+      name: 'Cloudflare & Google DoT (TLS 853)',
+      endpoint: '1.1.1.1:853, 8.8.8.8:853',
+      type: 'dot',
+      description: 'Cloudflare & Google Encrypted DoT',
     ),
     DnsResolverOption(
-      name: 'Cloudflare DNS',
-      endpoint: '1.1.1.1:53',
-      type: 'udp',
-      description: 'Cloudflare DNS (UDP 53)',
+      name: 'Quad9 Secure DoT (TLS 853)',
+      endpoint: '9.9.9.9:853, 149.112.112.112:853',
+      type: 'dot',
+      description: 'Quad9 Security Filtering DoT',
     ),
     DnsResolverOption(
-      name: 'Shecan (Anti-Sanction)',
-      endpoint: '78.157.42.100:53',
+      name: 'Shecan & Electro (Iran Anti-Sanction)',
+      endpoint: '78.157.42.100:53, 10.202.10.202:53',
       type: 'udp',
-      description: 'Shecan Anti-Sanction (Iran Low Latency)',
-    ),
-    DnsResolverOption(
-      name: 'Quad9 Secure',
-      endpoint: '9.9.9.9:53',
-      type: 'udp',
-      description: 'Quad9 Secure (UDP 53)',
+      description: 'Shecan & Electro Anti-Sanction (Iran Low Latency)',
     ),
   ];
 }
@@ -145,14 +170,14 @@ class Base32 {
 
 /// High-performance Userspace DNS Tunnel Relay.
 /// Conforms to MHPanel Multi-Transport Spec v2.0 (Mode 3).
-/// Operates 100% in userspace via 127.0.0.1 TCP sockets WITHOUT needing
-/// Android VpnService or VPN profiles, complying strictly with Google Play policies.
+/// Supports 4 Transports: UDP (53), TCP (53), DoH (443), DoT (853).
+/// Supports multiple concurrent/fallback numeric IPs and domain resolvers.
 class DnsTunnel {
   final DnsTunnelProtocol protocol;
   final String subdomain;
   final String publicKeyHex;
   final String resolverEndpoint;
-  final String resolverType; // 'doh' or 'udp'
+  final String resolverType; // 'udp', 'tcp', 'doh', 'dot'
   final List<int> localPorts;
   final int fallbackLocalPort;
 
@@ -166,10 +191,21 @@ class DnsTunnel {
   bool _isStopping = false;
 
   final HttpClient _httpClient = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 6);
+    ..connectionTimeout = const Duration(seconds: 5);
 
   RawDatagramSocket? _udpSocket;
   final Random _rnd = Random.secure();
+
+  // Multi-resolver list parsed from resolverEndpoint
+  late final List<DnsResolverEndpoint> _resolvers;
+  int _activeResolverIndex = 0;
+
+  // Live telemetry metrics
+  int? lastLatencyMs;
+  int queriesSent = 0;
+  int queriesReceived = 0;
+  String? get activeResolverDisplay =>
+      _resolvers.isNotEmpty ? _resolvers[_activeResolverIndex].display : null;
 
   // DNS query pending response completers: queryId -> Completer<Uint8List>
   final Map<int, Completer<Uint8List>> _pendingQueries = {};
@@ -185,7 +221,74 @@ class DnsTunnel {
     required this.onLog,
     required this.onStats,
     required this.onConnectionCountChanged,
-  });
+  }) {
+    _resolvers = parseResolvers(resolverEndpoint, resolverType);
+  }
+
+  static List<DnsResolverEndpoint> parseResolvers(
+    String input,
+    String defaultType,
+  ) {
+    final list = <DnsResolverEndpoint>[];
+    final parts = input.split(RegExp(r'[,;\s]+'));
+    final effectiveType = defaultType.toLowerCase();
+
+    for (final rawPart in parts) {
+      final part = rawPart.trim();
+      if (part.isEmpty) continue;
+
+      if (part.startsWith('http://') || part.startsWith('https://')) {
+        try {
+          final uri = Uri.parse(part);
+          list.add(DnsResolverEndpoint(
+            raw: part,
+            host: uri.host,
+            port: uri.port > 0 ? uri.port : 443,
+            type: 'doh',
+            url: part,
+          ));
+        } catch (_) {}
+        continue;
+      }
+
+      String host = part;
+      int port = effectiveType == 'dot'
+          ? 853
+          : (effectiveType == 'doh' ? 443 : 53);
+
+      if (part.contains(':')) {
+        final hostPort = part.split(':');
+        host = hostPort[0].trim();
+        final p = int.tryParse(hostPort[1].trim());
+        if (p != null && p > 0 && p <= 65535) port = p;
+      }
+
+      String url = '';
+      if (effectiveType == 'doh') {
+        url = 'https://$host:$port/dns-query';
+      }
+
+      list.add(DnsResolverEndpoint(
+        raw: part,
+        host: host,
+        port: port,
+        type: effectiveType,
+        url: url,
+      ));
+    }
+
+    if (list.isEmpty) {
+      list.add(const DnsResolverEndpoint(
+        raw: '8.8.8.8:53',
+        host: '8.8.8.8',
+        port: 53,
+        type: 'udp',
+        url: '',
+      ));
+    }
+
+    return list;
+  }
 
   Future<void> start() async {
     _isStopping = false;
@@ -193,7 +296,9 @@ class DnsTunnel {
     onLog(
       '🌐 Starting DNS Tunnel (${protocol.displayName}) ➔ Subdomain: $subdomain',
     );
-    onLog('📡 Resolver: $resolverEndpoint ($resolverType)');
+    onLog(
+      '📡 Resolvers [${resolverType.toUpperCase()}]: ${_resolvers.map((r) => r.display).join(", ")}',
+    );
 
     if (resolverType == 'udp') {
       try {
@@ -246,7 +351,9 @@ class DnsTunnel {
         );
         _serverSockets.add(fallbackSocket);
         _boundLocalPorts.add(fallbackLocalPort);
-        onLog('🚀 DNS Tunnel fallback listening on 127.0.0.1:$fallbackLocalPort');
+        onLog(
+          '🚀 DNS Tunnel fallback listening on 127.0.0.1:$fallbackLocalPort',
+        );
 
         fallbackSocket.listen(
           (clientSocket) =>
@@ -260,6 +367,37 @@ class DnsTunnel {
 
     if (_serverSockets.isEmpty) {
       throw Exception('Could not bind any local listening ports for DNS Tunnel.');
+    }
+
+    // Run startup probe to test resolvers and measure latency
+    unawaited(_probeResolvers());
+  }
+
+  Future<void> _probeResolvers() async {
+    onLog('🔍 Testing connection to DNS resolver(s)...');
+    final sw = Stopwatch()..start();
+    final queryId = _rnd.nextInt(0xFFFF);
+    final probeDomain = 'probe.$subdomain';
+    final queryPacket = _buildDnsQuery(queryId, probeDomain, 16); // TXT query
+
+    final res = await _sendWithFallback(queryId, queryPacket);
+    sw.stop();
+
+    if (res != null && res.isNotEmpty) {
+      lastLatencyMs = sw.elapsedMilliseconds;
+      onLog(
+        '⚡ [DNS Tunnel] Handshake successful! Resolver responded in ${lastLatencyMs}ms (Status: CONNECTED & FLOWING)',
+      );
+    } else if (res != null) {
+      lastLatencyMs = sw.elapsedMilliseconds;
+      onLog(
+        '⚡ [DNS Tunnel] Resolver reachable (${lastLatencyMs}ms). Tunnel ready for client traffic.',
+      );
+    } else {
+      lastLatencyMs = null;
+      onLog(
+        '⚠️ [DNS Tunnel] Resolver probe timeout. Please verify your resolver addresses (${_resolvers.map((r) => r.display).join(", ")}) or network access.',
+      );
     }
   }
 
@@ -323,6 +461,12 @@ class DnsTunnel {
     int clientSeq = 1;
     bool isClosed = false;
     Timer? pollTimer;
+    int totalClientBytesSent = 0;
+    int totalClientBytesReceived = 0;
+
+    onLog(
+      '📱 [DNS Tunnel] Client connected on 127.0.0.1:$port (Session #$sessionId)',
+    );
 
     void closeSession() {
       if (isClosed) return;
@@ -334,6 +478,9 @@ class DnsTunnel {
       if (_activeSockets.remove(clientSocket)) {
         onConnectionCountChanged(-1);
       }
+      onLog(
+        '🔌 [DNS Tunnel] Client session #$sessionId ended (Sent: ${totalClientBytesSent}B, Received: ${totalClientBytesReceived}B)',
+      );
     }
 
     // Downstream polling loop: queries the resolver periodically to receive server bytes
@@ -344,7 +491,11 @@ class DnsTunnel {
         if (serverBytes.isNotEmpty && !isClosed) {
           clientSocket.add(serverBytes);
           await clientSocket.flush();
+          totalClientBytesReceived += serverBytes.length;
           onStats(0, serverBytes.length);
+          onLog(
+            '📥 [DNS Tunnel] Downstream received ${serverBytes.length}B from tunnel ➔ Delivered to client',
+          );
         }
       } catch (_) {}
     });
@@ -353,24 +504,32 @@ class DnsTunnel {
       (data) async {
         if (isClosed) return;
         try {
-          // Chunk larger payloads into DNS query limits (~120 bytes max per query)
           int offset = 0;
           while (offset < data.length && !isClosed) {
             final end = min(offset + 110, data.length);
             final chunk = data.sublist(offset, end);
             offset = end;
 
+            onLog(
+              '📤 [DNS Tunnel] Forwarding ${chunk.length}B ➔ $subdomain via ${_resolvers[_activeResolverIndex].display} ($resolverType)',
+            );
+
             final serverBytes = await _exchangeDns(
               sessionId,
               clientSeq++,
               chunk,
             );
+            totalClientBytesSent += chunk.length;
             onStats(chunk.length, 0);
 
             if (serverBytes.isNotEmpty && !isClosed) {
               clientSocket.add(serverBytes);
               await clientSocket.flush();
+              totalClientBytesReceived += serverBytes.length;
               onStats(0, serverBytes.length);
+              onLog(
+                '📥 [DNS Tunnel] Reply received ${serverBytes.length}B ➔ Delivered to client',
+              );
             }
           }
         } catch (e) {
@@ -382,7 +541,7 @@ class DnsTunnel {
     );
   }
 
-  /// Encapsulates data into a DNS query, sends via DoH or UDP, and extracts response data.
+  /// Encapsulates data into a DNS query, sends via active transport with multi-resolver fallback.
   Future<Uint8List> _exchangeDns(
     int sessionId,
     int seq,
@@ -415,18 +574,61 @@ class DnsTunnel {
     final queryId = _rnd.nextInt(0xFFFF);
     final queryPacket = _buildDnsQuery(queryId, fullDomain, 16); // TXT query
 
-    Uint8List? responsePacket;
-    if (resolverType == 'doh') {
-      responsePacket = await _sendDohQuery(queryPacket);
-    } else {
-      responsePacket = await _sendUdpQuery(queryId, queryPacket);
-    }
+    final responsePacket = await _sendWithFallback(queryId, queryPacket);
 
     if (responsePacket == null || responsePacket.isEmpty) {
       return Uint8List(0);
     }
 
     return _parseDnsResponsePayload(responsePacket);
+  }
+
+  /// Sends query to active resolver; falls back to other resolvers on failure.
+  Future<Uint8List?> _sendWithFallback(int queryId, Uint8List packet) async {
+    if (_resolvers.isEmpty) return null;
+
+    final startIndex = _activeResolverIndex;
+    for (int attempt = 0; attempt < _resolvers.length; attempt++) {
+      final currentIndex = (startIndex + attempt) % _resolvers.length;
+      final endpoint = _resolvers[currentIndex];
+      queriesSent++;
+
+      Uint8List? response;
+      final sw = Stopwatch()..start();
+
+      switch (endpoint.type) {
+        case 'tcp':
+          response = await _sendTcpQuery(endpoint, packet);
+          break;
+        case 'dot':
+          response = await _sendDotQuery(endpoint, packet);
+          break;
+        case 'doh':
+          response = await _sendDohQuery(endpoint, packet);
+          break;
+        case 'udp':
+        default:
+          response = await _sendUdpQuery(endpoint, queryId, packet);
+          break;
+      }
+      sw.stop();
+
+      if (response != null && response.isNotEmpty) {
+        queriesReceived++;
+        lastLatencyMs = sw.elapsedMilliseconds;
+        _activeResolverIndex = currentIndex;
+        return response;
+      }
+
+      if (_resolvers.length > 1 && attempt < _resolvers.length - 1) {
+        final nextIndex = (startIndex + attempt + 1) % _resolvers.length;
+        onLog(
+          '⚠️ Resolver ${endpoint.display} timed out, failing over to ${_resolvers[nextIndex].display}...',
+        );
+      }
+    }
+
+    return null;
   }
 
   Uint8List _buildDnsQuery(int id, String domain, int qtype) {
@@ -459,9 +661,198 @@ class DnsTunnel {
     return bytes.toBytes();
   }
 
-  Future<Uint8List?> _sendDohQuery(Uint8List packet) async {
+  /// Sends DNS query over standard UDP socket (Port 53).
+  Future<Uint8List?> _sendUdpQuery(
+    DnsResolverEndpoint endpoint,
+    int queryId,
+    Uint8List packet,
+  ) async {
+    if (_udpSocket == null) return null;
+
     try {
-      final uri = Uri.parse(resolverEndpoint);
+      final targetAddr = InternetAddress(endpoint.host);
+      final completer = Completer<Uint8List>();
+      _pendingQueries[queryId] = completer;
+
+      _udpSocket!.send(packet, targetAddr, endpoint.port);
+
+      return await completer.future.timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          _pendingQueries.remove(queryId);
+          return Uint8List(0);
+        },
+      );
+    } catch (_) {
+      _pendingQueries.remove(queryId);
+      return null;
+    }
+  }
+
+  /// Sends DNS query over TCP with 2-byte big endian length prefix (RFC 7766).
+  Future<Uint8List?> _sendTcpQuery(
+    DnsResolverEndpoint endpoint,
+    Uint8List packet,
+  ) async {
+    Socket? socket;
+    try {
+      socket = await Socket.connect(
+        endpoint.host,
+        endpoint.port,
+        timeout: const Duration(seconds: 3),
+      );
+      socket.setOption(SocketOption.tcpNoDelay, true);
+
+      final length = packet.length;
+      final sendBuffer = BytesBuilder()
+        ..addByte((length >> 8) & 0xFF)
+        ..addByte(length & 0xFF)
+        ..add(packet);
+
+      socket.add(sendBuffer.toBytes());
+      await socket.flush();
+
+      final completer = Completer<Uint8List?>();
+      final receivedData = BytesBuilder();
+      int expectedLength = -1;
+
+      final subscription = socket.listen(
+        (data) {
+          receivedData.add(data);
+          final currentBytes = receivedData.toBytes();
+          if (expectedLength == -1 && currentBytes.length >= 2) {
+            expectedLength = (currentBytes[0] << 8) | currentBytes[1];
+          }
+          if (expectedLength != -1 &&
+              currentBytes.length >= expectedLength + 2) {
+            if (!completer.isCompleted) {
+              completer.complete(
+                Uint8List.fromList(
+                  currentBytes.sublist(2, expectedLength + 2),
+                ),
+              );
+            }
+          }
+        },
+        onError: (_) {
+          if (!completer.isCompleted) completer.complete(null);
+        },
+        onDone: () {
+          if (!completer.isCompleted) {
+            final currentBytes = receivedData.toBytes();
+            if (expectedLength != -1 &&
+                currentBytes.length >= expectedLength + 2) {
+              completer.complete(
+                Uint8List.fromList(
+                  currentBytes.sublist(2, expectedLength + 2),
+                ),
+              );
+            } else {
+              completer.complete(null);
+            }
+          }
+        },
+      );
+
+      final result = await completer.future.timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => null,
+      );
+      await subscription.cancel();
+      return result;
+    } catch (_) {
+      return null;
+    } finally {
+      try {
+        socket?.destroy();
+      } catch (_) {}
+    }
+  }
+
+  /// Sends DNS query over DoT (DNS over TLS, Port 853) with length prefix (RFC 7858).
+  Future<Uint8List?> _sendDotQuery(
+    DnsResolverEndpoint endpoint,
+    Uint8List packet,
+  ) async {
+    SecureSocket? socket;
+    try {
+      final port = endpoint.port > 0 ? endpoint.port : 853;
+      socket = await SecureSocket.connect(
+        endpoint.host,
+        port,
+        onBadCertificate: (cert) => true, // Allows raw IPs or self-signed certs
+        timeout: const Duration(seconds: 4),
+      );
+      socket.setOption(SocketOption.tcpNoDelay, true);
+
+      final length = packet.length;
+      final sendBuffer = BytesBuilder()
+        ..addByte((length >> 8) & 0xFF)
+        ..addByte(length & 0xFF)
+        ..add(packet);
+
+      socket.add(sendBuffer.toBytes());
+      await socket.flush();
+
+      final completer = Completer<Uint8List?>();
+      final receivedData = BytesBuilder();
+      int expectedLength = -1;
+
+      final subscription = socket.listen(
+        (data) {
+          receivedData.add(data);
+          final currentBytes = receivedData.toBytes();
+          if (expectedLength == -1 && currentBytes.length >= 2) {
+            expectedLength = (currentBytes[0] << 8) | currentBytes[1];
+          }
+          if (expectedLength != -1 &&
+              currentBytes.length >= expectedLength + 2) {
+            if (!completer.isCompleted) {
+              completer.complete(
+                Uint8List.fromList(
+                  currentBytes.sublist(2, expectedLength + 2),
+                ),
+              );
+            }
+          }
+        },
+        onError: (_) {
+          if (!completer.isCompleted) completer.complete(null);
+        },
+        onDone: () {
+          if (!completer.isCompleted) completer.complete(null);
+        },
+      );
+
+      final result = await completer.future.timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => null,
+      );
+      await subscription.cancel();
+      return result;
+    } catch (_) {
+      return null;
+    } finally {
+      try {
+        socket?.destroy();
+      } catch (_) {}
+    }
+  }
+
+  /// Sends DNS query over DoH (DNS over HTTPS, Port 443).
+  Future<Uint8List?> _sendDohQuery(
+    DnsResolverEndpoint endpoint,
+    Uint8List packet,
+  ) async {
+    try {
+      String urlStr = endpoint.url;
+      if (!urlStr.startsWith('http://') && !urlStr.startsWith('https://')) {
+        urlStr = 'https://$urlStr';
+      }
+      if (!urlStr.contains('/dns-query') && !urlStr.contains('?')) {
+        urlStr = '$urlStr/dns-query';
+      }
+      final uri = Uri.parse(urlStr);
       final request = await _httpClient.postUrl(uri);
       request.headers.set('Content-Type', 'application/dns-message');
       request.headers.set('Accept', 'application/dns-message');
@@ -479,33 +870,6 @@ class DnsTunnel {
       }
     } catch (_) {}
     return null;
-  }
-
-  Future<Uint8List?> _sendUdpQuery(int queryId, Uint8List packet) async {
-    if (_udpSocket == null) return null;
-
-    try {
-      final parts = resolverEndpoint.split(':');
-      final ip = parts[0];
-      final port = parts.length > 1 ? int.tryParse(parts[1]) ?? 53 : 53;
-
-      final targetAddr = InternetAddress(ip);
-      final completer = Completer<Uint8List>();
-      _pendingQueries[queryId] = completer;
-
-      _udpSocket!.send(packet, targetAddr, port);
-
-      return await completer.future.timeout(
-        const Duration(seconds: 3),
-        onTimeout: () {
-          _pendingQueries.remove(queryId);
-          return Uint8List(0);
-        },
-      );
-    } catch (_) {
-      _pendingQueries.remove(queryId);
-      return null;
-    }
   }
 
   Uint8List _parseDnsResponsePayload(Uint8List packet) {
@@ -531,7 +895,6 @@ class DnsTunnel {
     // Parse Answers
     final outBytes = BytesBuilder();
     for (int a = 0; a < ancount && idx < packet.length; a++) {
-      // Skip Name (label or compression pointer)
       if (packet[idx] >= 0xC0) {
         idx += 2;
       } else {
@@ -578,4 +941,3 @@ class DnsTunnel {
     return outBytes.toBytes();
   }
 }
-

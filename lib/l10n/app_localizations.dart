@@ -195,6 +195,7 @@ class AppLocalizations {
       'criticalHostWarning': 'نکته بسیار مهم: مقدار هدر Host و SNI حتماً باید دامنه اصلی هاست سرور باشد؛ هرگز آن را به 127.0.0.1 تغییر ندهید!',
       'copiedToClipboard': 'در کلیپ‌بورد کپی شد!',
       'openAppError': 'نرم‌افزار روی دستگاه باز نشد؛ لطفاً آن را به صورت دستی باز کنید.',
+      'dnsMultiResolversHint': 'می‌توانید چند آی‌پی عددی (مانند 8.8.8.8, 1.1.1.1) یا دامین را با کاما جدا کنید.',
 },
     'en': {
       'appName': 'ME Spoofing',
@@ -311,6 +312,7 @@ class AppLocalizations {
       'criticalHostWarning': 'CRITICAL NOTE: Host header and SNI MUST remain the original server domain; NEVER change them to 127.0.0.1!',
       'copiedToClipboard': 'Copied to clipboard!',
       'openAppError': 'Could not open app; please launch it manually.',
+      'dnsMultiResolversHint': 'You can enter multiple numeric IPs (e.g. 8.8.8.8, 1.1.1.1) or domains separated by comma.',
 },
     'ar': {
       'appName': 'ME Spoofing',
@@ -423,6 +425,7 @@ class AppLocalizations {
       'criticalHostWarning': 'ملاحظة هامة جداً: يجب أن يبقى رأس Host وقيمة SNI على نطاق الخادم الأصلي؛ لا تقم أبداً بتغييرهما إلى 127.0.0.1!',
       'copiedToClipboard': 'تم النسخ إلى الحافظة!',
       'openAppError': 'تعذر فتح التطبيق؛ يرجى فتحه يدوياً.',
+      'dnsMultiResolversHint': 'يمكنك إدخال عناوين IP رقمية متعددة (مثل 8.8.8.8, 1.1.1.1) أو نطاقات مفصولة بفاصلة.',
 },
     'zh': {
       'appName': 'ME Spoofing',
@@ -533,6 +536,7 @@ class AppLocalizations {
       'criticalHostWarning': '特别提醒：Host 请求头和 SNI 必须保留为服务器真实域名，绝不能修改为 127.0.0.1！',
       'copiedToClipboard': '已复制到剪贴板！',
       'openAppError': '无法自动打开应用，请手动启动。',
+      'dnsMultiResolversHint': '可输入多个数字 IP (如 8.8.8.8, 1.1.1.1) 或域名，用逗号分隔。',
 },
     'ru': {
       'appName': 'ME Spoofing',
@@ -647,6 +651,7 @@ class AppLocalizations {
       'criticalHostWarning': 'ВАЖНОЕ ПРИМЕЧАНИЕ: Заголовок Host и SNI ОБЯЗАТЕЛЬНО должны оставаться исходным доменом сервера; никогда не меняйте их на 127.0.0.1!',
       'copiedToClipboard': 'Скопировано в буфер обмена!',
       'openAppError': 'Не удалось открыть приложение; запустите его вручную.',
+      'dnsMultiResolversHint': 'Можно указать несколько числовых IP (напр. 8.8.8.8, 1.1.1.1) или доменов через запятую.',
 },
     'es': {
       'appName': 'ME Spoofing',
@@ -759,6 +764,7 @@ class AppLocalizations {
       'joinTelegram': 'Unirse al canal de Telegram',
       'starOnGithub': 'Apoyar con estrella en GitHub',
       'couldNotOpenLink': 'No se pudo abrir el enlace.',
+      'dnsMultiResolversHint': 'Puedes ingresar varias IP numéricas (ej. 8.8.8.8, 1.1.1.1) o dominios separados por coma.',
 },
     'it': {
       'appName': 'ME Spoofing',
@@ -871,6 +877,7 @@ class AppLocalizations {
       'joinTelegram': 'Entra nel canale Telegram',
       'starOnGithub': 'Supporta con una stella su GitHub',
       'couldNotOpenLink': 'Impossibile aprire il link.',
+      'dnsMultiResolversHint': 'È possibile inserire più IP numerici (es. 8.8.8.8, 1.1.1.1) o domini separati da virgola.',
 },
     'de': {
       'appName': 'ME Spoofing',
@@ -983,6 +990,7 @@ class AppLocalizations {
       'joinTelegram': 'Telegram-Kanal beitreten',
       'starOnGithub': 'Mit Stern auf GitHub unterstützen',
       'couldNotOpenLink': 'Link konnte nicht geöffnet werden.',
+      'dnsMultiResolversHint': 'Sie können mehrere numerische IPs (z. B. 8.8.8.8, 1.1.1.1) oder Domains durch Kommas getrennt eingeben.',
 },
     'fr': {
       'appName': 'ME Spoofing',
@@ -1095,6 +1103,7 @@ class AppLocalizations {
       'joinTelegram': 'Rejoindre le canal Telegram',
       'starOnGithub': 'Soutenir avec une étoile sur GitHub',
       'couldNotOpenLink': 'Impossible d\'ouvrir le lien.',
+      'dnsMultiResolversHint': 'Vous pouvez saisir plusieurs adresses IP numériques (ex. 8.8.8.8, 1.1.1.1) ou domaines séparés par une virgule.',
 },
     'hi': {
       'appName': 'ME Spoofing',
@@ -1205,6 +1214,7 @@ class AppLocalizations {
       'joinTelegram': 'टेलीग्राम चैनल से जुड़ें',
       'starOnGithub': 'गिटहब पर स्टार देकर समर्थन करें',
       'couldNotOpenLink': 'लिंक नहीं खोला जा सका।',
+      'dnsMultiResolversHint': 'आप अल्पविराम से अलग किए गए एकाधिक संख्यात्मक आईपी (जैसे 8.8.8.8, 1.1.1.1) या डोमेन दर्ज कर सकते हैं。',
 },
   };
 
@@ -1337,6 +1347,7 @@ class AppLocalizations {
   String get criticalHostWarning => translate('criticalHostWarning');
   String get copiedToClipboard => translate('copiedToClipboard');
   String get openAppError => translate('openAppError');
+  String get dnsMultiResolversHint => translate('dnsMultiResolversHint');
 }
 
 class _AppLocalizationsDelegate

@@ -263,11 +263,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
 
         // Save Mode 3 Settings
-        String finalResolver = _selectedDnsResolver == "Custom ..."
-            ? _customDnsResolverController.text.trim()
-            : _selectedDnsResolver;
+        String finalResolver = _customDnsResolverController.text.trim();
         if (finalResolver.isEmpty) {
-          finalResolver = "https://cloudflare-dns.com/dns-query";
+          finalResolver = _selectedDnsResolver != "Custom ..."
+              ? _selectedDnsResolver
+              : "8.8.8.8:53, 1.1.1.1:53";
         }
 
         _manager.updateDnsTunnelConfig(
@@ -602,10 +602,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Divider(color: borderColor, height: 1),
-                  ),
+                  if (_selectedTransportMode != TransportMode.dnsTunnel) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Divider(color: borderColor, height: 1),
+                    ),
 
                   // --- SERVER & LOCAL PORTS SECTION (DYNAMIC / NON-HARDCODED) ---
                   Row(
@@ -832,6 +833,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
+                ],
                 ],
               ),
             ),
@@ -1531,42 +1533,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (val != null) {
               setState(() {
                 _selectedDnsResolver = val;
-                final opt = DnsResolverOption.presets
-                    .where((e) => e.endpoint == val)
-                    .firstOrNull;
-                if (opt != null) {
-                  _dnsResolverType = opt.type;
+                if (val != "Custom ...") {
+                  _customDnsResolverController.text = val;
+                  final opt = DnsResolverOption.presets
+                      .where((e) => e.endpoint == val)
+                      .firstOrNull;
+                  if (opt != null) {
+                    _dnsResolverType = opt.type;
+                  }
                 }
               });
             }
           },
         ),
+        const SizedBox(height: 10),
 
-        if (_selectedDnsResolver == "Custom ...") ...[
-          const SizedBox(height: 12),
-          _buildFieldLabel(loc.customDomain, textSecondary),
-          TextFormField(
-            controller: _customDnsResolverController,
-            style: TextStyle(
-              color: textPrimary,
-              fontSize: 13,
-              fontFamily: 'monospace',
+        TextFormField(
+          controller: _customDnsResolverController,
+          style: TextStyle(
+            color: textPrimary,
+            fontSize: 13,
+            fontFamily: 'monospace',
+          ),
+          decoration: InputDecoration(
+            hintText: "8.8.8.8:53, 1.1.1.1:53",
+            helperText: loc.dnsMultiResolversHint,
+            helperMaxLines: 2,
+            helperStyle: TextStyle(fontSize: 10.5, color: textSecondary),
+            filled: true,
+            fillColor: surfaceColor,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: borderColor),
             ),
-            decoration: InputDecoration(
-              hintText: "https://cloudflare-dns.com/dns-query",
-              filled: true,
-              fillColor: surfaceColor,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: borderColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: borderColor),
-              ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: borderColor),
             ),
           ),
-        ],
+          onChanged: (text) {
+            if (_selectedDnsResolver != "Custom ...") {
+              setState(() => _selectedDnsResolver = "Custom ...");
+            }
+          },
+        ),
 
         const SizedBox(height: 14),
 
@@ -1580,7 +1590,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   DropdownButtonFormField<String>(
                     value: _dnsResolverType,
                     dropdownColor: surfaceColor,
-                    style: TextStyle(color: textPrimary, fontSize: 13.5),
+                    style: TextStyle(color: textPrimary, fontSize: 13),
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: surfaceColor,
@@ -1594,8 +1604,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                     items: const [
-                      DropdownMenuItem(value: "doh", child: Text("DoH (HTTPS)")),
-                      DropdownMenuItem(value: "udp", child: Text("UDP (Port 53)")),
+                      DropdownMenuItem(
+                        value: "udp",
+                        child: Text("UDP (Port 53)"),
+                      ),
+                      DropdownMenuItem(
+                        value: "tcp",
+                        child: Text("TCP (Port 53)"),
+                      ),
+                      DropdownMenuItem(
+                        value: "doh",
+                        child: Text("DoH (HTTPS 443)"),
+                      ),
+                      DropdownMenuItem(
+                        value: "dot",
+                        child: Text("DoT (TLS 853)"),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null) setState(() => _dnsResolverType = val);

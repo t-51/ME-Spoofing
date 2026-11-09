@@ -338,6 +338,13 @@ class ProxyManager extends ChangeNotifier {
   String get dnsResolverType => _dnsResolverType;
   int get dnsLocalPort => _dnsLocalPort;
 
+  int? get dnsTunnelLatencyMs => _dnsTunnel?.lastLatencyMs;
+  int get dnsTunnelQueriesSent => _dnsTunnel?.queriesSent ?? 0;
+  int get dnsTunnelQueriesReceived => _dnsTunnel?.queriesReceived ?? 0;
+  String? get dnsTunnelActiveResolver => _dnsTunnel?.activeResolverDisplay;
+  String get dnsProtocolDisplay =>
+      DnsTunnelProtocol.fromId(_dnsProtocol).displayName;
+
   void updateDnsTunnelConfig({
     String? protocol,
     String? subdomain,
@@ -617,7 +624,7 @@ class ProxyManager extends ChangeNotifier {
         publicKeyHex: _dnsPublicKey,
         resolverEndpoint: _dnsResolver,
         resolverType: _dnsResolverType,
-        localPorts: ports,
+        localPorts: [_dnsLocalPort],
         fallbackLocalPort: _dnsLocalPort,
         onLog: (msg) => log(msg),
         onStats: (uploaded, downloaded) {
