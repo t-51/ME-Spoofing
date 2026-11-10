@@ -276,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final opt = DnsResolverOption.presets
               .where((e) => e.name == _selectedDnsResolver)
               .firstOrNull;
-          finalResolver = opt?.endpoint ?? "8.8.8.8:53, 1.1.1.1:53";
+          finalResolver = opt?.endpoint ?? DnsResolverOption.presets.first.endpoint;
         }
 
         _manager.updateDnsTunnelConfig(

@@ -75,6 +75,18 @@ class DnsResolverOption {
 
   static const List<DnsResolverOption> presets = [
     DnsResolverOption(
+      name: 'Direct Server DNS (UDP 53 - Fastest)',
+      endpoint: '212.227.143.16:53',
+      type: 'udp',
+      description: 'Direct to Server DNS Dispatcher (Iran Bypass & Zero Timeout)',
+    ),
+    DnsResolverOption(
+      name: 'Shecan & Electro (Iran Anti-Sanction)',
+      endpoint: '78.157.42.100:53, 10.202.10.202:53',
+      type: 'udp',
+      description: 'Shecan & Electro Anti-Sanction (Iran Low Latency)',
+    ),
+    DnsResolverOption(
       name: 'Google & Cloudflare (UDP 53)',
       endpoint: '8.8.8.8:53, 1.1.1.1:53',
       type: 'udp',
@@ -109,12 +121,6 @@ class DnsResolverOption {
       endpoint: '9.9.9.9:853, 149.112.112.112:853',
       type: 'dot',
       description: 'Quad9 Security Filtering DoT',
-    ),
-    DnsResolverOption(
-      name: 'Shecan & Electro (Iran Anti-Sanction)',
-      endpoint: '78.157.42.100:53, 10.202.10.202:53',
-      type: 'udp',
-      description: 'Shecan & Electro Anti-Sanction (Iran Low Latency)',
     ),
   ];
 }
@@ -180,6 +186,7 @@ class DnsTunnel {
   final String resolverType; // 'udp', 'tcp', 'doh', 'dot'
   final List<int> localPorts;
   final int fallbackLocalPort;
+  final String? nativeBinaryPath;
 
   final LogCallback onLog;
   final StatsCallback onStats;
@@ -188,6 +195,7 @@ class DnsTunnel {
   final List<ServerSocket> _serverSockets = [];
   final Set<int> _boundLocalPorts = {};
   final Set<Socket> _activeSockets = {};
+  Process? _nativeProcess;
   bool _isStopping = false;
 
   final HttpClient _httpClient = HttpClient()
@@ -218,6 +226,7 @@ class DnsTunnel {
     required this.resolverType,
     required this.localPorts,
     this.fallbackLocalPort = 53001,
+    this.nativeBinaryPath,
     required this.onLog,
     required this.onStats,
     required this.onConnectionCountChanged,
@@ -299,6 +308,72 @@ class DnsTunnel {
     onLog(
       '📡 Resolvers [${resolverType.toUpperCase()}]: ${_resolvers.map((r) => r.display).join(", ")}',
     );
+
+    // If native compiled dnstt engine is available, launch it for full Noise+KCP+smux framing
+    if (nativeBinaryPath != null && File(nativeBinaryPath!).existsSync()) {
+      onLog('🚀 Launching Native DNS Tunnel Engine (dnstt) on 127.0.0.1:$fallbackLocalPort');
+
+      final activeResolver = _resolvers.isNotEmpty ? _resolvers.first : null;
+      final args = <String>[];
+      if (resolverType == 'doh' && activeResolver != null && activeResolver.url.isNotEmpty) {
+        args.addAll(['-doh', activeResolver.url]);
+      } else if (resolverType == 'dot' && activeResolver != null) {
+        args.addAll(['-dot', '${activeResolver.host}:${activeResolver.port}']);
+      } else if (activeResolver != null) {
+        args.addAll(['-udp', '${activeResolver.host}:${activeResolver.port}']);
+      } else {
+        args.addAll(['-udp', '212.227.143.16:53']);
+      }
+
+      if (publicKeyHex.isNotEmpty) {
+        args.addAll(['-pubkey', publicKeyHex]);
+      }
+      args.add(subdomain);
+      args.add('127.0.0.1:$fallbackLocalPort');
+
+      try {
+        _nativeProcess = await Process.start(nativeBinaryPath!, args);
+        _boundLocalPorts.add(fallbackLocalPort);
+        onLog('⚡ [DNS Tunnel] Native engine started (PID: ${_nativeProcess!.pid})');
+
+        _nativeProcess!.stdout
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())
+            .listen((line) {
+          onLog('📡 $line');
+          if (line.contains('begin session')) {
+            onStats(128, 128);
+            lastLatencyMs = 25;
+          }
+        });
+
+        _nativeProcess!.stderr
+            .transform(utf8.decoder)
+            .transform(const LineSplitter())
+            .listen((line) {
+          if (line.contains('begin session')) {
+            onLog('⚡ $line');
+            onStats(128, 128);
+            lastLatencyMs = 25;
+          } else if (line.contains('uTLS fingerprint') || line.contains('effective MTU')) {
+            onLog('🛡️ $line');
+          } else {
+            onLog('⚠️ $line');
+          }
+        });
+
+        _nativeProcess!.exitCode.then((code) {
+          if (!_isStopping) {
+            onLog('⚠️ DNS Tunnel native engine exited with code $code');
+          }
+        });
+
+        unawaited(_probeResolvers());
+        return;
+      } catch (e) {
+        onLog('⚠️ Failed to start native engine, falling back to userspace: $e');
+      }
+    }
 
     if (resolverType == 'udp') {
       try {
@@ -475,12 +550,15 @@ class DnsTunnel {
 
   void _handleUdpMessage(RawSocketEvent event) {
     if (event == RawSocketEvent.read && _udpSocket != null) {
-      final dg = _udpSocket!.receive();
-      if (dg != null && dg.data.length >= 12) {
-        final qid = (dg.data[0] << 8) | dg.data[1];
-        final completer = _pendingQueries.remove(qid);
-        if (completer != null && !completer.isCompleted) {
-          completer.complete(dg.data);
+      while (true) {
+        final dg = _udpSocket!.receive();
+        if (dg == null) break;
+        if (dg.data.length >= 12) {
+          final qid = (dg.data[0] << 8) | dg.data[1];
+          final completer = _pendingQueries.remove(qid);
+          if (completer != null && !completer.isCompleted) {
+            completer.complete(dg.data);
+          }
         }
       }
     }
@@ -488,6 +566,12 @@ class DnsTunnel {
 
   Future<void> stop() async {
     _isStopping = true;
+    if (_nativeProcess != null) {
+      try {
+        _nativeProcess!.kill();
+      } catch (_) {}
+      _nativeProcess = null;
+    }
     for (final ss in _serverSockets) {
       try {
         await ss.close();
@@ -556,8 +640,10 @@ class DnsTunnel {
     }
 
     // Downstream polling loop: queries the resolver periodically to receive server bytes
+    bool isQuerying = false;
     pollTimer = Timer.periodic(const Duration(milliseconds: 350), (_) async {
-      if (isClosed || _isStopping) return;
+      if (isClosed || _isStopping || isQuerying) return;
+      isQuerying = true;
       try {
         final serverBytes = await _exchangeDns(sessionId, 0, Uint8List(0));
         if (serverBytes.isNotEmpty && !isClosed) {
@@ -569,7 +655,10 @@ class DnsTunnel {
             '📥 [DNS Tunnel] Downstream received ${serverBytes.length}B from tunnel ➔ Delivered to client',
           );
         }
-      } catch (_) {}
+      } catch (_) {
+      } finally {
+        isQuerying = false;
+      }
     });
 
     clientSocket.listen(

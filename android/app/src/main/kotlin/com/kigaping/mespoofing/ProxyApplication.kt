@@ -31,10 +31,10 @@ class ProxyApplication : Application() {
             flutterEngine.dartExecutor.binaryMessenger,
             SETTINGS_CHANNEL
         ).setMethodCallHandler { call, result ->
-            if (call.method == "getFilesDir") {
-                result.success(filesDir.absolutePath)
-            } else {
-                result.notImplemented()
+            when (call.method) {
+                "getFilesDir" -> result.success(filesDir.absolutePath)
+                "getNativeLibraryDir" -> result.success(applicationInfo.nativeLibraryDir)
+                else -> result.notImplemented()
             }
         }
 

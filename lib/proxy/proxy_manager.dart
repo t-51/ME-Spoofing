@@ -108,8 +108,8 @@ class ProxyManager extends ChangeNotifier {
   String _dnsSubdomain = "v.vpn.kigaping.com";
   String _dnsPublicKey =
       "4438c41e91bf44b10a9e1a67bbade78f99137a875efc189ba54a6c95ecc2650a";
-  String _dnsResolver = "https://cloudflare-dns.com/dns-query";
-  String _dnsResolverType = "doh";
+  String _dnsResolver = "212.227.143.16:53";
+  String _dnsResolverType = "udp";
   int _dnsLocalPort = 53001;
 
   // Configurable Legacy / Auxiliary Settings
@@ -619,6 +619,8 @@ class ProxyManager extends ChangeNotifier {
 
     if (_transportMode == TransportMode.dnsTunnel) {
       final proto = DnsTunnelProtocol.fromId(_dnsProtocol);
+      final libDir = await getNativeLibraryDir();
+      final nativePath = libDir != null ? '$libDir/libdnstt.so' : null;
       _dnsTunnel = DnsTunnel(
         protocol: proto,
         subdomain: _dnsSubdomain,
@@ -627,6 +629,7 @@ class ProxyManager extends ChangeNotifier {
         resolverType: _dnsResolverType,
         localPorts: [_dnsLocalPort],
         fallbackLocalPort: _dnsLocalPort,
+        nativeBinaryPath: nativePath,
         onLog: (msg) => log(msg),
         onStats: (uploaded, downloaded) {
           _totalBytesUploaded += uploaded;
@@ -810,6 +813,15 @@ class ProxyManager extends ChangeNotifier {
       return path;
     } catch (e) {
       if (Platform.isAndroid) rethrow;
+      return null;
+    }
+  }
+
+  Future<String?> getNativeLibraryDir() async {
+    if (!Platform.isAndroid) return null;
+    try {
+      return await _channel.invokeMethod<String>('getNativeLibraryDir');
+    } catch (_) {
       return null;
     }
   }
