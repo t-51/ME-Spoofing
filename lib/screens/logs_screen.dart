@@ -77,7 +77,6 @@ class _LogsScreenState extends State<LogsScreen> {
 
     final filters = [
       {'id': 'all', 'label': loc.all},
-      {'id': 'dns', 'label': loc.dnsTunnelTab},
       {'id': 'connections', 'label': loc.connections},
       {'id': 'errors', 'label': loc.errors},
       {'id': 'fake', 'label': loc.fakeInjection},

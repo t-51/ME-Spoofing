@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../proxy/proxy_manager.dart';
-import '../proxy/dns_tunnel.dart';
 import '../services/locale_controller.dart';
 import '../theme_controller.dart';
 import '../widgets/community_dialog.dart';
@@ -40,15 +39,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _cfServerSniController;
   late TextEditingController _cfFragmentDelayController;
   late String _selectedCfCleanPreset;
-
-  // --- Mode 3: DNS Tunnel Controllers ---
-  late String _selectedDnsProtocol;
-  late TextEditingController _dnsSubdomainController;
-  late TextEditingController _dnsPublicKeyController;
-  late String _selectedDnsResolver;
-  late TextEditingController _customDnsResolverController;
-  late String _dnsResolverType;
-  late TextEditingController _dnsLocalPortController;
 
   final List<String> _fakeSniPresets = [
     "speedtest.net",
@@ -118,39 +108,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } else {
       _selectedCfCleanPreset = "Custom ...";
     }
-
-    // Mode 3
-    _selectedDnsProtocol = _manager.dnsProtocol;
-    _dnsSubdomainController = TextEditingController(
-      text: _manager.dnsSubdomain,
-    );
-    _dnsPublicKeyController = TextEditingController(
-      text: _manager.dnsPublicKey,
-    );
-    _dnsResolverType = _manager.dnsResolverType;
-    _dnsLocalPortController = TextEditingController(
-      text: _manager.dnsLocalPort.toString(),
-    );
-
-    final matchingPreset = DnsResolverOption.presets
-        .where((e) =>
-            e.endpoint == _manager.dnsResolver &&
-            e.type == _manager.dnsResolverType)
-        .firstOrNull ??
-        DnsResolverOption.presets
-            .where((e) => e.endpoint == _manager.dnsResolver)
-            .firstOrNull;
-
-    if (matchingPreset != null) {
-      _selectedDnsResolver = matchingPreset.name;
-      _customDnsResolverController =
-          TextEditingController(text: matchingPreset.endpoint);
-    } else {
-      _selectedDnsResolver = "Custom ...";
-      _customDnsResolverController = TextEditingController(
-        text: _manager.dnsResolver,
-      );
-    }
   }
 
   @override
@@ -167,11 +124,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cfCleanPortController.dispose();
     _cfServerSniController.dispose();
     _cfFragmentDelayController.dispose();
-
-    _dnsSubdomainController.dispose();
-    _dnsPublicKeyController.dispose();
-    _customDnsResolverController.dispose();
-    _dnsLocalPortController.dispose();
 
     super.dispose();
   }
@@ -268,26 +220,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               : _cfServerSniController.text.trim(),
           fragmentDelayMs:
               int.tryParse(_cfFragmentDelayController.text) ?? 5,
-        );
-
-        // Save Mode 3 Settings
-        String finalResolver = _customDnsResolverController.text.trim();
-        if (finalResolver.isEmpty) {
-          final opt = DnsResolverOption.presets
-              .where((e) => e.name == _selectedDnsResolver)
-              .firstOrNull;
-          finalResolver = opt?.endpoint ?? DnsResolverOption.presets.first.endpoint;
-        }
-
-        _manager.updateDnsTunnelConfig(
-          protocol: _selectedDnsProtocol,
-          subdomain: _dnsSubdomainController.text.trim().isEmpty
-              ? "v.vpn.kigaping.com"
-              : _dnsSubdomainController.text.trim(),
-          publicKey: _dnsPublicKeyController.text.trim(),
-          resolver: finalResolver,
-          resolverType: _dnsResolverType,
-          localPort: int.tryParse(_dnsLocalPortController.text) ?? 53001,
         );
 
         if (!mounted) return;
@@ -586,20 +518,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       primaryBlue: primaryBlue,
                       loc: loc,
                     ),
-                  ] else if (_selectedTransportMode ==
-                      TransportMode.cloudflareClean) ...[
-                    _buildMode2Section(
-                      isDark: isDark,
-                      surfaceColor: surfaceColor,
-                      borderColor: borderColor,
-                      chipBgColor: chipBgColor,
-                      textPrimary: textPrimary,
-                      textSecondary: textSecondary,
-                      primaryBlue: primaryBlue,
-                      loc: loc,
-                    ),
                   ] else ...[
-                    _buildMode3Section(
+                    _buildMode2Section(
                       isDark: isDark,
                       surfaceColor: surfaceColor,
                       borderColor: borderColor,
@@ -611,11 +531,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ],
 
-                  if (_selectedTransportMode != TransportMode.dnsTunnel) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: Divider(color: borderColor, height: 1),
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Divider(color: borderColor, height: 1),
+                  ),
 
                   // --- SERVER & LOCAL PORTS SECTION (DYNAMIC / NON-HARDCODED) ---
                   Row(
@@ -843,7 +762,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ],
-                ],
               ),
             ),
             bottomNavigationBar: SafeArea(
@@ -903,19 +821,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: loc.mode2Title,
           subtitle: loc.mode2Sub,
           icon: Icons.filter_drama_rounded,
-          isDark: isDark,
-          surfaceColor: surfaceColor,
-          borderColor: borderColor,
-          textPrimary: textPrimary,
-          textSecondary: textSecondary,
-          primaryBlue: primaryBlue,
-        ),
-        const SizedBox(height: 8),
-        _buildModeOptionTile(
-          mode: TransportMode.dnsTunnel,
-          title: loc.mode3Title,
-          subtitle: loc.mode3Sub,
-          icon: Icons.dns_rounded,
           isDark: isDark,
           surfaceColor: surfaceColor,
           borderColor: borderColor,
@@ -1393,295 +1298,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               borderSide: BorderSide(color: borderColor),
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMode3Section({
-    required bool isDark,
-    required Color surfaceColor,
-    required Color borderColor,
-    required Color chipBgColor,
-    required Color textPrimary,
-    required Color textSecondary,
-    required Color primaryBlue,
-    required AppLocalizations loc,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: Text(
-            loc.dnsSection,
-            style: TextStyle(
-              color: textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        _buildFieldLabel(loc.dnsProto, textSecondary),
-        DropdownButtonFormField<String>(
-          value: DnsTunnelProtocol.values.any((p) => p.id == _selectedDnsProtocol)
-              ? _selectedDnsProtocol
-              : DnsTunnelProtocol.vayDns.id,
-          dropdownColor: surfaceColor,
-          style: TextStyle(color: textPrimary, fontSize: 13.5),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: surfaceColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-          ),
-          items: DnsTunnelProtocol.values.map((p) {
-            return DropdownMenuItem(
-              value: p.id,
-              child: Text(p.displayName),
-            );
-          }).toList(),
-          onChanged: (val) {
-            if (val != null) {
-              final proto = DnsTunnelProtocol.fromId(val);
-              setState(() {
-                _selectedDnsProtocol = val;
-                _dnsSubdomainController.text = proto.defaultSubdomain;
-                if (proto.defaultPublicKey.isNotEmpty) {
-                  _dnsPublicKeyController.text = proto.defaultPublicKey;
-                }
-              });
-            }
-          },
-        ),
-        const SizedBox(height: 14),
-
-        _buildFieldLabel(loc.dnsSubdomain, textSecondary),
-        TextFormField(
-          controller: _dnsSubdomainController,
-          style: TextStyle(
-            color: textPrimary,
-            fontSize: 13.5,
-            fontFamily: 'monospace',
-          ),
-          decoration: InputDecoration(
-            hintText: "v.vpn.kigaping.com",
-            filled: true,
-            fillColor: surfaceColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-          ),
-          validator: (val) =>
-              (val == null || val.trim().isEmpty) ? loc.dnsSubdomain : null,
-        ),
-        const SizedBox(height: 14),
-
-        _buildFieldLabel(loc.dnsPubKey, textSecondary),
-        TextFormField(
-          controller: _dnsPublicKeyController,
-          style: TextStyle(
-            color: textPrimary,
-            fontSize: 12,
-            fontFamily: 'monospace',
-          ),
-          decoration: InputDecoration(
-            hintText: "4438c41e91bf44b10a9e1a67bbade78f99137a875efc189ba54a6c95ecc2650a",
-            filled: true,
-            fillColor: surfaceColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        _buildFieldLabel(loc.dnsResolver, textSecondary),
-        DropdownButtonFormField<String>(
-          value: DnsResolverOption.presets.any((r) => r.name == _selectedDnsResolver)
-              ? _selectedDnsResolver
-              : "Custom ...",
-          dropdownColor: surfaceColor,
-          isExpanded: true,
-          style: TextStyle(color: textPrimary, fontSize: 13),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: surfaceColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-          ),
-          items: [
-            ...DnsResolverOption.presets.map((r) {
-              return DropdownMenuItem(
-                value: r.name,
-                child: Text(
-                  r.name,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              );
-            }),
-            const DropdownMenuItem(
-              value: "Custom ...",
-              child: Text("Custom ..."),
-            ),
-          ],
-          onChanged: (val) {
-            if (val != null) {
-              setState(() {
-                _selectedDnsResolver = val;
-                if (val != "Custom ...") {
-                  final opt = DnsResolverOption.presets
-                      .where((e) => e.name == val)
-                      .firstOrNull;
-                  if (opt != null) {
-                    _customDnsResolverController.text = opt.endpoint;
-                    _dnsResolverType = opt.type;
-                  }
-                }
-              });
-            }
-          },
-        ),
-        const SizedBox(height: 10),
-
-        TextFormField(
-          controller: _customDnsResolverController,
-          style: TextStyle(
-            color: textPrimary,
-            fontSize: 13,
-            fontFamily: 'monospace',
-          ),
-          decoration: InputDecoration(
-            hintText: "8.8.8.8:53, 1.1.1.1:53",
-            helperText: loc.dnsMultiResolversHint,
-            helperMaxLines: 2,
-            helperStyle: TextStyle(fontSize: 10.5, color: textSecondary),
-            filled: true,
-            fillColor: surfaceColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: borderColor),
-            ),
-          ),
-          onChanged: (text) {
-            if (_selectedDnsResolver != "Custom ...") {
-              setState(() => _selectedDnsResolver = "Custom ...");
-            }
-          },
-        ),
-
-        const SizedBox(height: 14),
-
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFieldLabel(loc.dnsType, textSecondary),
-                  DropdownButtonFormField<String>(
-                    value: ["udp", "tcp", "doh", "dot"].contains(_dnsResolverType)
-                        ? _dnsResolverType
-                        : "udp",
-                    dropdownColor: surfaceColor,
-                    style: TextStyle(color: textPrimary, fontSize: 13),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: surfaceColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: "udp",
-                        child: Text("UDP (Port 53)"),
-                      ),
-                      DropdownMenuItem(
-                        value: "tcp",
-                        child: Text("TCP (Port 53)"),
-                      ),
-                      DropdownMenuItem(
-                        value: "doh",
-                        child: Text("DoH (HTTPS 443)"),
-                      ),
-                      DropdownMenuItem(
-                        value: "dot",
-                        child: Text("DoT (TLS 853)"),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => _dnsResolverType = val);
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFieldLabel(loc.dnsLocalPort, textSecondary),
-                  TextFormField(
-                    controller: _dnsLocalPortController,
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(
-                      color: textPrimary,
-                      fontSize: 13.5,
-                      fontFamily: 'monospace',
-                    ),
-                    decoration: InputDecoration(
-                      hintText: "53001",
-                      filled: true,
-                      fillColor: surfaceColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ),
       ],
     );

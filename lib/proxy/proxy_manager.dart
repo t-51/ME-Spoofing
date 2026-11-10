@@ -5,13 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'socks5_proxy.dart';
 import 'mhpanel_tunnel.dart';
-import 'dns_tunnel.dart';
 import '../services/system_notification_service.dart';
 
 enum TransportMode {
   directSni('direct_sni', 'حالت ۱: مستقیم با ضد فیلتر SNI (پورت ۱۵۴۴۳)'),
-  cloudflareClean('cloudflare_clean', 'حالت ۲: کلودفلر آی‌پی تمیز + فرگمنت (پورت ۴۴۳)'),
-  dnsTunnel('dns_tunnel', 'حالت ۳: تونل دی‌ان‌اس (DNS Tunnel / دور زدن قطعی سراسری)');
+  cloudflareClean('cloudflare_clean', 'حالت ۲: کلودفلر آی‌پی تمیز + فرگمنت (پورت ۴۴۳)');
 
   final String id;
   final String displayName;
@@ -43,7 +41,6 @@ class ProxyManager extends ChangeNotifier {
   }
 
   MhpanelTunnel? _mhpanelTunnel;
-  DnsTunnel? _dnsTunnel;
   Socks5Proxy? _socksProxy;
 
   TransportMode _transportMode = TransportMode.directSni;
@@ -102,15 +99,6 @@ class ProxyManager extends ChangeNotifier {
   String _cfServerSni = "ws.kigaping.com";
   int _cfFragmentDelayMs = 5;
   int _cfFragmentSize = 2;
-
-  // --- Mode 3: DNS Tunnel Settings ---
-  String _dnsProtocol = "vaydns";
-  String _dnsSubdomain = "v.vpn.kigaping.com";
-  String _dnsPublicKey =
-      "4438c41e91bf44b10a9e1a67bbade78f99137a875efc189ba54a6c95ecc2650a";
-  String _dnsResolver = "212.227.143.16:53";
-  String _dnsResolverType = "udp";
-  int _dnsLocalPort = 53001;
 
   // Configurable Legacy / Auxiliary Settings
   String _host = "127.0.0.1";
@@ -330,39 +318,6 @@ class ProxyManager extends ChangeNotifier {
     saveSettingsToDisk();
   }
 
-  // DNS Tunnel (Mode 3)
-  String get dnsProtocol => _dnsProtocol;
-  String get dnsSubdomain => _dnsSubdomain;
-  String get dnsPublicKey => _dnsPublicKey;
-  String get dnsResolver => _dnsResolver;
-  String get dnsResolverType => _dnsResolverType;
-  int get dnsLocalPort => _dnsLocalPort;
-
-  int? get dnsTunnelLatencyMs => _dnsTunnel?.lastLatencyMs;
-  int get dnsTunnelQueriesSent => _dnsTunnel?.queriesSent ?? 0;
-  int get dnsTunnelQueriesReceived => _dnsTunnel?.queriesReceived ?? 0;
-  String? get dnsTunnelActiveResolver => _dnsTunnel?.activeResolverDisplay;
-  String get dnsProtocolDisplay =>
-      DnsTunnelProtocol.fromId(_dnsProtocol).displayName;
-
-  void updateDnsTunnelConfig({
-    String? protocol,
-    String? subdomain,
-    String? publicKey,
-    String? resolver,
-    String? resolverType,
-    int? localPort,
-  }) {
-    if (protocol != null) _dnsProtocol = protocol;
-    if (subdomain != null) _dnsSubdomain = subdomain.trim();
-    if (publicKey != null) _dnsPublicKey = publicKey.trim();
-    if (resolver != null) _dnsResolver = resolver.trim();
-    if (resolverType != null) _dnsResolverType = resolverType;
-    if (localPort != null) _dnsLocalPort = localPort;
-    notifyListeners();
-    saveSettingsToDisk();
-  }
-
   // MHPanel Getters
   String get mhServerHost => _mhServerHosts.first;
   List<String> get mhServerHosts => List.unmodifiable(_mhServerHosts);
@@ -528,14 +483,11 @@ class ProxyManager extends ChangeNotifier {
   }
 
   void _addLiveListener(int port) {
-    if (!_isRunning) return;
+    final tunnel = _mhpanelTunnel;
+    if (!_isRunning || tunnel == null) return;
     unawaited(() async {
       try {
-        if (_transportMode == TransportMode.dnsTunnel) {
-          await _dnsTunnel?.addLocalPort(port);
-        } else {
-          await _mhpanelTunnel?.addLocalPort(port);
-        }
+        await tunnel.addLocalPort(port);
       } catch (error) {
         log("❌ Could not add local listener for port $port: $error");
       }
@@ -620,71 +572,43 @@ class ProxyManager extends ChangeNotifier {
 
     final ports = _mhServerPorts.isNotEmpty ? _mhServerPorts : [_mhLocalPort];
 
-    if (_transportMode == TransportMode.dnsTunnel) {
-      final proto = DnsTunnelProtocol.fromId(_dnsProtocol);
-      final libDir = await getNativeLibraryDir();
-      final nativePath = libDir != null ? '$libDir/libdnstt.so' : null;
-      final bridgePorts = List<int>.from(ports);
-      if (!bridgePorts.contains(22)) bridgePorts.add(22); // Include SSH by default
-      _dnsTunnel = DnsTunnel(
-        protocol: proto,
-        subdomain: _dnsSubdomain,
-        publicKeyHex: _dnsPublicKey,
-        resolverEndpoint: _dnsResolver,
-        resolverType: _dnsResolverType,
-        serverHost: mhServerHost.isNotEmpty ? mhServerHost : "mhpanel.kigaping.com",
-        localPorts: bridgePorts,
-        fallbackLocalPort: _dnsLocalPort,
-        nativeBinaryPath: nativePath,
-        onLog: (msg) => log(msg),
-        onStats: (uploaded, downloaded) {
-          _totalBytesUploaded += uploaded;
-          _totalBytesDownloaded += downloaded;
-        },
-        onConnectionCountChanged: (change) {
-          _activeConnections += change;
-          if (_activeConnections < 0) _activeConnections = 0;
-        },
-      );
-    } else {
-      _mhpanelTunnel = MhpanelTunnel(
-        transportMode: _transportMode == TransportMode.cloudflareClean
-            ? MhpanelTransportMode.cloudflareClean
-            : MhpanelTransportMode.directSni,
-        serverHost: _transportMode == TransportMode.cloudflareClean
-            ? _cfCleanIp
-            : mhServerHost,
-        serverHosts: _transportMode == TransportMode.cloudflareClean
-            ? [_cfCleanIp]
-            : _mhServerHosts,
-        serverDaemonPort: _transportMode == TransportMode.cloudflareClean
-            ? _cfCleanPort
-            : _mhDaemonPort,
-        serverPorts: ports,
-        fallbackLocalPort: _mhLocalPort,
-        fakeSni: _transportMode == TransportMode.cloudflareClean
-            ? _cfServerSni
-            : _mhFakeSni,
-        fragmentDelayMs: _transportMode == TransportMode.cloudflareClean
-            ? _cfFragmentDelayMs
-            : _mhFragmentDelayMs,
-        enableFakePacket: _transportMode == TransportMode.cloudflareClean
-            ? false
-            : _mhEnableFakePacket,
-        cfCleanIp: _cfCleanIp,
-        cfCleanPort: _cfCleanPort,
-        cfServerSni: _cfServerSni,
-        onLog: (msg) => log(msg),
-        onStats: (uploaded, downloaded) {
-          _totalBytesUploaded += uploaded;
-          _totalBytesDownloaded += downloaded;
-        },
-        onConnectionCountChanged: (change) {
-          _activeConnections += change;
-          if (_activeConnections < 0) _activeConnections = 0;
-        },
-      );
-    }
+    _mhpanelTunnel = MhpanelTunnel(
+      transportMode: _transportMode == TransportMode.cloudflareClean
+          ? MhpanelTransportMode.cloudflareClean
+          : MhpanelTransportMode.directSni,
+      serverHost: _transportMode == TransportMode.cloudflareClean
+          ? _cfCleanIp
+          : mhServerHost,
+      serverHosts: _transportMode == TransportMode.cloudflareClean
+          ? [_cfCleanIp]
+          : _mhServerHosts,
+      serverDaemonPort: _transportMode == TransportMode.cloudflareClean
+          ? _cfCleanPort
+          : _mhDaemonPort,
+      serverPorts: ports,
+      fallbackLocalPort: _mhLocalPort,
+      fakeSni: _transportMode == TransportMode.cloudflareClean
+          ? _cfServerSni
+          : _mhFakeSni,
+      fragmentDelayMs: _transportMode == TransportMode.cloudflareClean
+          ? _cfFragmentDelayMs
+          : _mhFragmentDelayMs,
+      enableFakePacket: _transportMode == TransportMode.cloudflareClean
+          ? false
+          : _mhEnableFakePacket,
+      cfCleanIp: _cfCleanIp,
+      cfCleanPort: _cfCleanPort,
+      cfServerSni: _cfServerSni,
+      onLog: (msg) => log(msg),
+      onStats: (uploaded, downloaded) {
+        _totalBytesUploaded += uploaded;
+        _totalBytesDownloaded += downloaded;
+      },
+      onConnectionCountChanged: (change) {
+        _activeConnections += change;
+        if (_activeConnections < 0) _activeConnections = 0;
+      },
+    );
 
     try {
       if (Platform.isAndroid) {
@@ -696,11 +620,7 @@ class ProxyManager extends ChangeNotifier {
           activeConnections: _activeConnections,
         );
       }
-      if (_transportMode == TransportMode.dnsTunnel) {
-        await _dnsTunnel!.start();
-      } else {
-        await _mhpanelTunnel!.start();
-      }
+      await _mhpanelTunnel!.start();
       _isRunning = true;
 
       _statsTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -748,17 +668,6 @@ class ProxyManager extends ChangeNotifier {
           );
         }
       }
-      final failedDns = _dnsTunnel;
-      _dnsTunnel = null;
-      if (failedDns != null) {
-        try {
-          await failedDns.stop();
-        } catch (cleanupError) {
-          log(
-            "❌ Failed to clean up DNS tunnel after startup error: $cleanupError",
-          );
-        }
-      }
       notifyListeners();
       rethrow;
     }
@@ -778,11 +687,6 @@ class ProxyManager extends ChangeNotifier {
     if (_mhpanelTunnel != null) {
       await _mhpanelTunnel!.stop();
       _mhpanelTunnel = null;
-    }
-
-    if (_dnsTunnel != null) {
-      await _dnsTunnel!.stop();
-      _dnsTunnel = null;
     }
 
     if (_socksProxy != null) {
@@ -823,15 +727,6 @@ class ProxyManager extends ChangeNotifier {
     }
   }
 
-  Future<String?> getNativeLibraryDir() async {
-    if (!Platform.isAndroid) return null;
-    try {
-      return await _channel.invokeMethod<String>('getNativeLibraryDir');
-    } catch (_) {
-      return null;
-    }
-  }
-
   Future<void> saveSettingsToDisk({bool throwOnError = false}) async {
     try {
       final path = await _getStoragePath();
@@ -853,12 +748,6 @@ class ProxyManager extends ChangeNotifier {
         'cfServerSni': _cfServerSni,
         'cfFragmentDelayMs': _cfFragmentDelayMs,
         'cfFragmentSize': _cfFragmentSize,
-        'dnsProtocol': _dnsProtocol,
-        'dnsSubdomain': _dnsSubdomain,
-        'dnsPublicKey': _dnsPublicKey,
-        'dnsResolver': _dnsResolver,
-        'dnsResolverType': _dnsResolverType,
-        'dnsLocalPort': _dnsLocalPort,
         'mhServerHost': mhServerHost,
         'mhServerHosts': _mhServerHosts,
         'mhDaemonPort': _mhDaemonPort,
@@ -946,14 +835,6 @@ class ProxyManager extends ChangeNotifier {
       if (data['cfFragmentSize'] is int) {
         _cfFragmentSize = data['cfFragmentSize'];
       }
-      if (data['dnsProtocol'] is String) _dnsProtocol = data['dnsProtocol'];
-      if (data['dnsSubdomain'] is String) _dnsSubdomain = data['dnsSubdomain'];
-      if (data['dnsPublicKey'] is String) _dnsPublicKey = data['dnsPublicKey'];
-      if (data['dnsResolver'] is String) _dnsResolver = data['dnsResolver'];
-      if (data['dnsResolverType'] is String) {
-        _dnsResolverType = data['dnsResolverType'];
-      }
-      if (data['dnsLocalPort'] is int) _dnsLocalPort = data['dnsLocalPort'];
 
       final savedHosts = data['mhServerHosts'];
       if (savedHosts is List) {
