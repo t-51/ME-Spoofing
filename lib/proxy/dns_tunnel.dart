@@ -187,6 +187,7 @@ class DnsTunnel {
   final List<int> localPorts;
   final int fallbackLocalPort;
   final String? nativeBinaryPath;
+  final String serverHost;
 
   final LogCallback onLog;
   final StatsCallback onStats;
@@ -227,6 +228,7 @@ class DnsTunnel {
     required this.localPorts,
     this.fallbackLocalPort = 53001,
     this.nativeBinaryPath,
+    this.serverHost = 'mhpanel.kigaping.com',
     required this.onLog,
     required this.onStats,
     required this.onConnectionCountChanged,
@@ -368,6 +370,10 @@ class DnsTunnel {
           }
         });
 
+        // Start Local Protocol Bridges (for SSH, Trojan, and custom ports)
+        await Future.delayed(const Duration(milliseconds: 250));
+        await _startBridgeListeners();
+
         unawaited(_probeResolvers());
         return;
       } catch (e) {
@@ -446,6 +452,160 @@ class DnsTunnel {
 
     // Run startup probe to test resolvers and measure latency
     unawaited(_probeResolvers());
+  }
+
+  /// Starts local TCP protocol bridge listeners for ports other than fallbackLocalPort (e.g. SSH 22, Trojan 40443)
+  Future<void> _startBridgeListeners() async {
+    final distinctPorts = <int>{};
+    for (final p in localPorts) {
+      if (p > 0 && p <= 65535 && p != fallbackLocalPort) {
+        distinctPorts.add(p);
+      }
+    }
+
+    for (final port in distinctPorts) {
+      await _bindBridgePort(port);
+    }
+  }
+
+  Future<void> _bindBridgePort(int port) async {
+    if (_boundLocalPorts.contains(port) || _isStopping) return;
+    try {
+      final serverSocket = await ServerSocket.bind(
+        InternetAddress.anyIPv4,
+        port,
+        shared: true,
+      );
+      _serverSockets.add(serverSocket);
+      _boundLocalPorts.add(port);
+      final path = _getWsPathForPort(port);
+      onLog('🚀 [DNS Tunnel Bridge] Listening on 127.0.0.1:$port ➔ Path: $path (Upstream: $fallbackLocalPort)');
+
+      serverSocket.listen(
+        (clientSocket) => _handleBridgeConnection(clientSocket, port),
+        onError: (err) {
+          if (!_isStopping) onLog('Bridge port $port error: $err');
+        },
+      );
+    } catch (e) {
+      onLog('⚠️ Could not bind Bridge 127.0.0.1:$port: $e');
+    }
+  }
+
+  Future<void> addLocalPort(int port) async {
+    if (_isStopping || _boundLocalPorts.contains(port)) return;
+    if (port <= 0 || port > 65535 || port == fallbackLocalPort) return;
+    await _bindBridgePort(port);
+  }
+
+  static String _getWsPathForPort(int port) {
+    if (port == 22 || port == 2222) return '/ssh';
+    if (port == 40443) return '/trojan-ws';
+    return '/vless-ws';
+  }
+
+  void _handleBridgeConnection(Socket clientSocket, int port) async {
+    if (_isStopping) {
+      clientSocket.destroy();
+      return;
+    }
+
+    _activeSockets.add(clientSocket);
+    onConnectionCountChanged(1);
+
+    final Socket tunnel;
+    try {
+      tunnel = await Socket.connect(
+        InternetAddress.loopbackIPv4,
+        fallbackLocalPort,
+        timeout: const Duration(seconds: 5),
+      );
+    } catch (e) {
+      onLog('⚠️ [Bridge] Could not connect to DNS Tunnel on 127.0.0.1:$fallbackLocalPort: $e');
+      clientSocket.destroy();
+      if (_activeSockets.remove(clientSocket)) {
+        onConnectionCountChanged(-1);
+      }
+      return;
+    }
+
+    StreamSubscription<Uint8List>? clientSub;
+    StreamSubscription<Uint8List>? tunnelSub;
+    bool isClosed = false;
+    bool upgraded = false;
+    final buffer = <int>[];
+
+    void closeAll() {
+      if (isClosed) return;
+      isClosed = true;
+      clientSub?.cancel();
+      clientSub = null;
+      tunnelSub?.cancel();
+      tunnelSub = null;
+      try { clientSocket.destroy(); } catch (_) {}
+      try { tunnel.destroy(); } catch (_) {}
+      if (_activeSockets.remove(clientSocket)) {
+        onConnectionCountChanged(-1);
+      }
+    }
+
+    final path = _getWsPathForPort(port);
+    final effectiveHost = (serverHost.isNotEmpty && !RegExp(r'^[0-9.]+$').hasMatch(serverHost))
+        ? serverHost
+        : 'mhpanel.kigaping.com';
+
+    final wsReq =
+        'GET $path HTTP/1.1\r\n'
+        'Host: $effectiveHost\r\n'
+        'Upgrade: websocket\r\n'
+        'Connection: Upgrade\r\n'
+        'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n'
+        'Sec-WebSocket-Version: 13\r\n\r\n';
+
+    try {
+      tunnel.add(Uint8List.fromList(wsReq.codeUnits));
+      await tunnel.flush();
+    } catch (_) {
+      closeAll();
+      return;
+    }
+
+    tunnelSub = tunnel.listen(
+      (data) {
+        if (isClosed) return;
+        if (!upgraded) {
+          buffer.addAll(data);
+          final text = String.fromCharCodes(buffer);
+          final headerEnd = text.indexOf('\r\n\r\n');
+          if (headerEnd != -1) {
+            upgraded = true;
+            onLog('⚡ [Bridge] Upgraded port $port to WebSocket ($path) ➔ Connected & Streaming');
+            final remaining = buffer.sublist(headerEnd + 4);
+            if (remaining.isNotEmpty) {
+              clientSocket.add(Uint8List.fromList(remaining));
+              onStats(0, remaining.length);
+            }
+          }
+        } else {
+          clientSocket.add(data);
+          onStats(0, data.length);
+        }
+      },
+      onError: (_) => closeAll(),
+      onDone: closeAll,
+    );
+
+    clientSub = clientSocket.listen(
+      (data) {
+        if (isClosed) return;
+        if (upgraded) {
+          tunnel.add(data);
+          onStats(data.length, 0);
+        }
+      },
+      onError: (_) => closeAll(),
+      onDone: closeAll,
+    );
   }
 
   Future<void> _probeResolvers() async {

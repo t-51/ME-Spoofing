@@ -204,8 +204,11 @@ class ProfileGenerator {
 
   /// Generates the standard single-line URI with host pointed to 127.0.0.1.
   static String generateStandardUri(ParsedProxyConfig config, {int? customPort}) {
-    final targetPort =
-        (customPort != null && customPort > 0) ? customPort : config.port;
+    final isDnsTunnel =
+        ProxyManager.instance.transportMode == TransportMode.dnsTunnel;
+    final targetPort = isDnsTunnel
+        ? ProxyManager.instance.dnsLocalPort
+        : ((customPort != null && customPort > 0) ? customPort : config.port);
 
     if (config.protocol == 'vmess') {
       try {
@@ -215,15 +218,23 @@ class ProfileGenerator {
         final Map<String, dynamic> json = jsonDecode(decoded);
         json['add'] = '127.0.0.1';
         if (targetPort > 0) json['port'] = targetPort;
+        if (isDnsTunnel) {
+          json['tls'] = 'none';
+        }
         return "vmess://${base64Encode(utf8.encode(jsonEncode(json)))}";
       } catch (_) {}
     }
 
     try {
       final uri = Uri.parse(config.raw);
+      final q = Map<String, String>.from(uri.queryParameters);
+      if (isDnsTunnel) {
+        q['security'] = 'none';
+      }
       return uri.replace(
         host: '127.0.0.1',
         port: targetPort > 0 ? targetPort : uri.port,
+        queryParameters: q.isNotEmpty ? q : null,
       ).toString();
     } catch (_) {
       return config.raw;

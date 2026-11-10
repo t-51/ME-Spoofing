@@ -474,7 +474,7 @@ class _RoutingAssistantDialogState extends State<RoutingAssistantDialog> {
                     Expanded(
                       child: _buildTabButton(
                         index: 2,
-                        title: "Npv / Other",
+                        title: "SSH / Other",
                         isSelected: _selectedTutorialTab == 2,
                         primaryBlue: primaryBlue,
                         textPrimary: textPrimary,
@@ -613,6 +613,38 @@ class _RoutingAssistantDialogState extends State<RoutingAssistantDialog> {
                           fontSize: 11.5,
                           height: 1.55,
                           color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.terminal_rounded,
+                              size: 16,
+                              color: Color(0xFF10B981),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "SSH / Tunnel: برای کلاینت‌های SSH (مانند Termius یا JuiceSSH)، هاست را روی 127.0.0.1 و پورت را روی 22 تنظیم کنید تا ترافیک مستقیماً از بستر تانل دی‌ان‌اس منتقل شود.",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  height: 1.45,
+                                  color: textPrimary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

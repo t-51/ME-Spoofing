@@ -528,11 +528,14 @@ class ProxyManager extends ChangeNotifier {
   }
 
   void _addLiveListener(int port) {
-    final tunnel = _mhpanelTunnel;
-    if (!_isRunning || tunnel == null) return;
+    if (!_isRunning) return;
     unawaited(() async {
       try {
-        await tunnel.addLocalPort(port);
+        if (_transportMode == TransportMode.dnsTunnel) {
+          await _dnsTunnel?.addLocalPort(port);
+        } else {
+          await _mhpanelTunnel?.addLocalPort(port);
+        }
       } catch (error) {
         log("❌ Could not add local listener for port $port: $error");
       }
@@ -621,13 +624,16 @@ class ProxyManager extends ChangeNotifier {
       final proto = DnsTunnelProtocol.fromId(_dnsProtocol);
       final libDir = await getNativeLibraryDir();
       final nativePath = libDir != null ? '$libDir/libdnstt.so' : null;
+      final bridgePorts = List<int>.from(ports);
+      if (!bridgePorts.contains(22)) bridgePorts.add(22); // Include SSH by default
       _dnsTunnel = DnsTunnel(
         protocol: proto,
         subdomain: _dnsSubdomain,
         publicKeyHex: _dnsPublicKey,
         resolverEndpoint: _dnsResolver,
         resolverType: _dnsResolverType,
-        localPorts: [_dnsLocalPort],
+        serverHost: mhServerHost.isNotEmpty ? mhServerHost : "mhpanel.kigaping.com",
+        localPorts: bridgePorts,
         fallbackLocalPort: _dnsLocalPort,
         nativeBinaryPath: nativePath,
         onLog: (msg) => log(msg),
