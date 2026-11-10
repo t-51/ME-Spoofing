@@ -377,7 +377,8 @@ class DnsTunnel {
     onLog('🔍 Testing connection to DNS resolver(s)...');
     final sw = Stopwatch()..start();
     final queryId = _rnd.nextInt(0xFFFF);
-    final probeDomain = 'probe.$subdomain';
+    // Probe the authoritative subdomain Apex TXT record (configured by MHPanel DNS dispatcher)
+    final probeDomain = subdomain;
     final queryPacket = _buildDnsQuery(queryId, probeDomain, 16); // TXT query
 
     final res = await _sendWithFallback(queryId, queryPacket);
@@ -389,8 +390,10 @@ class DnsTunnel {
       final ancount = (res[6] << 8) | res[7];
 
       if (rcode == 0 && ancount > 0) {
+        final banner = _extractTxtString(res);
+        final bannerDisplay = banner.isNotEmpty ? ' ($banner)' : '';
         onLog(
-          '⚡ [DNS Tunnel] Handshake successful! DNS Tunnel Server answered in ${lastLatencyMs}ms (Status: CONNECTED & FLOWING)',
+          '⚡ [DNS Tunnel] Handshake successful! DNS Tunnel Server answered in ${lastLatencyMs}ms$bannerDisplay [Status: CONNECTED & FLOWING]',
         );
       } else if (rcode == 3) {
         onLog(
@@ -411,6 +414,63 @@ class DnsTunnel {
         '⚠️ [DNS Tunnel] Resolver probe timeout. Please verify your resolver addresses (${_resolvers.map((r) => r.display).join(", ")}) or network access.',
       );
     }
+  }
+
+  static String _extractTxtString(Uint8List packet) {
+    if (packet.length < 12) return '';
+    final ancount = (packet[6] << 8) | packet[7];
+    if (ancount <= 0) return '';
+
+    int idx = 12;
+    // Skip Question Section
+    while (idx < packet.length) {
+      final len = packet[idx++];
+      if (len == 0) break;
+      if ((len & 0xC0) == 0xC0) {
+        idx++;
+        break;
+      }
+      idx += len;
+    }
+    idx += 4; // Skip QTYPE & QCLASS
+
+    for (int a = 0; a < ancount && idx < packet.length; a++) {
+      if (packet[idx] >= 0xC0) {
+        idx += 2;
+      } else {
+        while (idx < packet.length && packet[idx] != 0) {
+          idx += 1 + packet[idx];
+        }
+        idx++;
+      }
+      if (idx + 10 > packet.length) break;
+      final type = (packet[idx] << 8) | packet[idx + 1];
+      idx += 8;
+      final rdLength = (packet[idx] << 8) | packet[idx + 1];
+      idx += 2;
+      if (idx + rdLength > packet.length) break;
+
+      if (type == 16) {
+        final txtBuffer = StringBuffer();
+        int rPos = 0;
+        while (rPos < rdLength && idx + rPos < packet.length) {
+          final tLen = packet[idx + rPos++];
+          if (rPos + tLen <= rdLength) {
+            txtBuffer.write(
+              utf8.decode(
+                packet.sublist(idx + rPos, idx + rPos + tLen),
+                allowMalformed: true,
+              ),
+            );
+            rPos += tLen;
+          }
+        }
+        final s = txtBuffer.toString().trim();
+        if (s.isNotEmpty) return s;
+      }
+      idx += rdLength;
+    }
+    return '';
   }
 
   void _handleUdpMessage(RawSocketEvent event) {
