@@ -83,6 +83,7 @@ flutter build apk --release
 
 ---
 
-## 📄 License
+## 📄 License & Privacy
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+- **License:** Licensed under the [MIT License](LICENSE).
+- **Privacy Policy:** See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) or the [Web Version](https://t-51.github.io/ME-Spoofing/privacy-policy.html).

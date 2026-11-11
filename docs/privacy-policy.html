@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - ME Spoofing</title>
+    <style>
+        :root {
+            --primary: #1976d2;
+            --primary-dark: #0d47a1;
+            --text: #212529;
+            --text-secondary: #5f6368;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --border: #e9ecef;
+            --accent: #e3f2fd;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #64b5f6;
+                --primary-dark: #90caf9;
+                --text: #e8eaed;
+                --text-secondary: #9aa0a6;
+                --bg: #121212;
+                --card-bg: #1e1e1e;
+                --border: #2d2d2d;
+                --accent: #1e293b;
+            }
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.65;
+            color: var(--text);
+            background-color: var(--bg);
+            padding: 24px 16px;
+        }
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+        header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+        .meta {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        h2 {
+            font-size: 1.3rem;
+            margin: 28px 0 12px;
+            color: var(--text);
+            border-left: 4px solid var(--primary);
+            padding-left: 12px;
+        }
+        p {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        ul {
+            margin-bottom: 16px;
+            padding-left: 24px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .highlight-box {
+            background-color: var(--accent);
+            border-left: 4px solid var(--primary);
+            padding: 14px 18px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 0.95rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border: 1px solid var(--border);
+        }
+        th {
+            background-color: var(--bg);
+            color: var(--text);
+            font-weight: 600;
+        }
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Privacy Policy</h1>
+            <div class="meta">
+                <strong>Application:</strong> ME Spoofing (com.kigaping.mespoofing)<br>
+                <strong>Developer:</strong> MHPanel / t-51<br>
+                <strong>Effective Date:</strong> November 12, 2026
+            </div>
+        </header>
+
+        <section>
+            <h2>1. Introduction</h2>
+            <p>
+                This Privacy Policy explains how <strong>ME Spoofing</strong> ("we", "our", or "the app") treats user data and privacy. 
+                We are committed to maintaining the highest standard of user privacy. <strong>ME Spoofing is designed as a privacy-first, zero-logging userspace proxy tool.</strong>
+            </p>
+        </section>
+
+        <section>
+            <h2>2. No Collection of Personal Data (Zero-Log Policy)</h2>
+            <div class="highlight-box">
+                <strong>Zero-Logging Guarantee:</strong> We do not collect, store, monitor, inspect, or sell any personal information, browsing history, visited websites, DNS records, or transmitted payload data.
+            </div>
+            <p>
+                <strong>ME Spoofing</strong> operates as a local userspace proxy (binding to <code>127.0.0.1</code>). 
+                All traffic modification (such as TCP fragmentation and decoy SNI injection) is processed strictly in-memory on your local device. 
+                No network traffic is transmitted to or analyzed by any servers owned or operated by the developer.
+            </p>
+        </section>
+
+        <section>
+            <h2>3. Third-Party Services and Advertising</h2>
+            <p>
+                The application integrates third-party services that may collect information used to identify your device for advertisement delivery and compliance:
+            </p>
+            <ul>
+                <li>
+                    <strong>Google AdMob (Google Mobile Ads SDK)</strong>: 
+                    Used to display banner ads and rewarded video advertisements (which allow users to extend connection time).
+                    AdMob may automatically collect certain device data in accordance with Google's privacy standards, including:
+                    <ul>
+                        <li>Google Advertising ID (GAID) / Identifier for Advertising</li>
+                        <li>IP address (used by Google for coarse location and fraud prevention)</li>
+                        <li>Device hardware model, operating system version, and system language</li>
+                        <li>Ad interaction metrics and crash / diagnostic performance data</li>
+                    </ul>
+                    <p style="margin-top: 8px;">
+                        For details on how Google processes ad data, please review:
+                        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a> and 
+                        <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">Google Advertising Policies</a>.
+                    </p>
+                </li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>4. Android Device Permissions</h2>
+            <p>
+                The application requests only permissions essential for its core functionality:
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Permission</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>INTERNET</code></td>
+                        <td>Allows the proxy engine to relay outbound network requests to user-defined destinations.</td>
+                    </tr>
+                    <tr>
+                        <td><code>ACCESS_NETWORK_STATE</code></td>
+                        <td>Detects network connection status (Wi-Fi, Cellular) to handle reconnections seamlessly.</td>
+                    </tr>
+                    <tr>
+                        <td><code>POST_NOTIFICATIONS</code></td>
+                        <td>Displays an ongoing foreground notification while the proxy is running (required on Android 13+).</td>
+                    </tr>
+                    <tr>
+                        <td><code>FOREGROUND_SERVICE</code><br><code>(DATA_SYNC / SPECIAL_USE)</code></td>
+                        <td>Maintains the active proxy service in the background so connections are not terminated while using other apps.</td>
+                    </tr>
+                    <tr>
+                        <td><code>REQUEST_IGNORE_BATTERY_OPTIMIZATIONS</code></td>
+                        <td>Prompted optionally so aggressive device battery managers do not interrupt background proxy sessions.</td>
+                    </tr>
+                    <tr>
+                        <td><code>RECEIVE_BOOT_COMPLETED</code></td>
+                        <td>Allows optional automatic restart of the proxy service after device boot if configured by the user.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                <em>Note: ME Spoofing does <strong>not</strong> require Android's <code>VpnService</code> permission as it operates strictly as an in-device userspace socket proxy.</em>
+            </p>
+        </section>
+
+        <section>
+            <h2>5. Children's Privacy</h2>
+            <p>
+                ME Spoofing is not directed to children under the age of 13 (or under 16 in the European Union). We do not knowingly collect personal identifiable information from children. If you believe that a child has provided us with personal information, please contact us immediately.
+            </p>
+        </section>
+
+        <section>
+            <h2>6. Security of Your Data</h2>
+            <p>
+                Because no personal data or traffic logs are collected or stored on our servers, your information is protected against remote data breaches. All network relaying is processed locally within the application sandbox.
+            </p>
+        </section>
+
+        <section>
+            <h2>7. Changes to This Privacy Policy</h2>
+            <p>
+                We may update our Privacy Policy periodically. Any revisions will be reflected on this page with an updated "Effective Date". Users are advised to review this page periodically for any changes.
+            </p>
+        </section>
+
+        <section>
+            <h2>8. Contact Us</h2>
+            <p>
+                If you have any questions or feedback regarding this Privacy Policy, please contact us at:
+            </p>
+            <ul>
+                <li><strong>Email:</strong> <a href="mailto:ahmadi09120@gmail.com">ahmadi09120@gmail.com</a></li>
+                <li><strong>GitHub Repository:</strong> <a href="https://github.com/t-51/ME-Spoofing/issues" target="_blank" rel="noopener">https://github.com/t-51/ME-Spoofing/issues</a></li>
+            </ul>
+        </section>
+
+        <footer>
+            &copy; 2026 ME Spoofing. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html>
