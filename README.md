@@ -38,10 +38,11 @@
 
 ### Install & Connect
 
-1. Download the latest APK from [**GitHub Releases**](https://github.com/t-51/snispoof/releases)
-2. Open the app → Select a transport mode → Tap **Connect**
-3. Configure your client (Happ, v2rayNG, Sing-box, Npv Tunnel, Telegram) to use `127.0.0.1:<port>`
-4. Use the **Routing Assistant** to auto-convert your existing V2Ray/Xray config
+1. Download the latest **Android APK** or **Desktop/CLI binaries** (Windows, Linux, macOS, Termux) from [**GitHub Releases**](https://github.com/t-51/ME-Spoofing/releases)
+2. **Android:** Open the app → Select a transport mode → Tap **Connect**
+3. **Desktop / CLI (`desktop/`):** Download `snispoof-client` for your OS + `config.json` from your MHPanel dashboard (or pass `-server <IP> -port 15443`), then run it
+4. Configure your client (Happ, v2rayNG, Sing-box, Npv Tunnel, Telegram) to use `127.0.0.1:<port>`
+5. Use the **Routing Assistant** to auto-convert your existing V2Ray/Xray config
 
 For the full English guide → [docs/README.en.md](docs/README.en.md)
 

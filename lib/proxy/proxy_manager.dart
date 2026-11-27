@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'socks5_proxy.dart';
 import 'mhpanel_tunnel.dart';
+import '../l10n/app_localizations.dart';
 import '../services/system_notification_service.dart';
 
 enum TransportMode {
@@ -557,9 +558,7 @@ class ProxyManager extends ChangeNotifier {
       } catch (error) {
         log("❌ نمایش اعلان پایان زمان ناموفق بود: $error");
       }
-      throw Exception(
-        "زمان اتصال به پایان رسیده است. لطفاً با تماشای ویدیو تبلیغاتی زمان دریافت کنید.",
-      );
+      throw Exception(AppLocalizations.current.timeExpiredError);
     }
 
     _proxyRequested = true;

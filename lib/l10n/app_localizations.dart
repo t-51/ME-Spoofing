@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import '../services/locale_controller.dart';
 
 enum AppLanguage {
   system('system', 'پیش‌فرض سیستم', 'System Default'),
@@ -70,7 +72,17 @@ class AppLocalizations {
 
   static AppLocalizations of(BuildContext context) {
     return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
-        AppLocalizations(const Locale('fa'));
+        current;
+  }
+
+  static AppLocalizations get current {
+    final selected = LocaleController.instance.locale;
+    if (selected != null) {
+      return AppLocalizations(selected);
+    }
+    final sysCode = Platform.localeName.split(RegExp(r'[_-]')).first;
+    final matched = supportedLocales.any((l) => l.languageCode == sysCode);
+    return AppLocalizations(Locale(matched ? sysCode : 'fa'));
   }
 
   String get languageCode => locale.languageCode;
@@ -197,6 +209,25 @@ class AppLocalizations {
       'copiedToClipboard': 'در کلیپ‌بورد کپی شد!',
       'openAppError': 'نرم‌افزار روی دستگاه باز نشد؛ لطفاً آن را به صورت دستی باز کنید.',
       'dnsMultiResolversHint': 'می‌توانید چند آی‌پی عددی (مانند 8.8.8.8, 1.1.1.1) یا دامین را با کاما جدا کنید.',
+      'systemDefault': 'پیش‌فرض سیستم',
+      'preparingAd': 'در حال آماده‌سازی و پخش ویدیوی تبلیغاتی...',
+      'adNotReady': 'ویدیو تبلیغاتی هنوز در دسترس نیست یا اینترنت متصل نیست. لطفاً مجدداً امتحان کنید.',
+      'adReloading': 'تبلیغ در حال بارگیری مجدد است',
+      'startupError': 'خطا در راه‌اندازی',
+      'invalidPortRange': 'شماره پورت باید عددی بین ۱ تا ۶۵۵۳۵ باشد.',
+      'timeExpiredError': 'زمان اتصال به پایان رسیده است. لطفاً با تماشای ویدیو تبلیغاتی زمان دریافت کنید.',
+      'notifConnectedTitle': 'ME Spoofing - اتصال فعال 🛡️',
+      'notifDownload': 'دانلود',
+      'notifUpload': 'آپلود',
+      'notifTotal': 'مجموع',
+      'notifActiveConns': 'اتصالات فعال',
+      'notifDisconnect': 'قطع اتصال',
+      'notifExpiredTitle': 'ME Spoofing - زمان اتصال تمام شد',
+      'notifExpiredBody': 'برای تمدید زمان، برنامه را باز کنید و تبلیغ پاداشی را تماشا کنید.',
+      'notifWarningTitle': 'ME Spoofing - زمان اتصال رو به پایان است',
+      'notifWarningBody': 'حدود {mins} دقیقه تا پایان زمان مانده است. پس از تمدید زمان، برای اتصال دوباره باید دکمهٔ اتصال را دستی بزنید.',
+      'routingGuideTitle': 'راهنمای گام‌به‌گام اتصال نرم‌افزارها',
+      'sshTunnelHint': 'SSH / Tunnel: برای کلاینت‌های SSH (مانند Termius یا JuiceSSH)، هاست را روی 127.0.0.1 و پورت را روی 22 تنظیم کنید تا ترافیک مستقیماً از طریق پروکسی لوکال رله شود.',
 },
     'en': {
       'appName': 'ME Spoofing',
@@ -315,6 +346,25 @@ class AppLocalizations {
       'copiedToClipboard': 'Copied to clipboard!',
       'openAppError': 'Could not open app; please launch it manually.',
       'dnsMultiResolversHint': 'You can enter multiple numeric IPs (e.g. 8.8.8.8, 1.1.1.1) or domains separated by comma.',
+      'systemDefault': 'System Default',
+      'preparingAd': 'Preparing and loading rewarded video ad...',
+      'adNotReady': 'Rewarded video ad is not ready yet or no internet connection. Please try again.',
+      'adReloading': 'Reloading ad...',
+      'startupError': 'Startup error',
+      'invalidPortRange': 'Port number must be between 1 and 65535.',
+      'timeExpiredError': 'Connection time has expired. Please watch a rewarded ad to get more time.',
+      'notifConnectedTitle': 'ME Spoofing - Connected 🛡️',
+      'notifDownload': 'Download',
+      'notifUpload': 'Upload',
+      'notifTotal': 'Total',
+      'notifActiveConns': 'Active connections',
+      'notifDisconnect': 'Disconnect',
+      'notifExpiredTitle': 'ME Spoofing - Connection Time Expired',
+      'notifExpiredBody': 'Open the app and watch a rewarded ad to extend your connection time.',
+      'notifWarningTitle': 'ME Spoofing - Connection Time Running Low',
+      'notifWarningBody': 'About {mins} minutes remaining. After extending your time, tap Connect manually to reconnect.',
+      'routingGuideTitle': 'Client Connection Guide',
+      'sshTunnelHint': 'SSH / Tunnel: For SSH clients (such as Termius or JuiceSSH), set the host to 127.0.0.1 and port to 22 to relay traffic directly through the local proxy.',
 },
     'ar': {
       'appName': 'ME Spoofing',
@@ -429,6 +479,25 @@ class AppLocalizations {
       'copiedToClipboard': 'تم النسخ إلى الحافظة!',
       'openAppError': 'تعذر فتح التطبيق؛ يرجى فتحه يدوياً.',
       'dnsMultiResolversHint': 'يمكنك إدخال عناوين IP رقمية متعددة (مثل 8.8.8.8, 1.1.1.1) أو نطاقات مفصولة بفاصلة.',
+      'systemDefault': 'افتراضي النظام',
+      'preparingAd': 'جارٍ تحضير وتشغيل إعلان الفيديو...',
+      'adNotReady': 'إعلان المكافأة غير جاهز بعد أو لا يوجد اتصال بالإنترنت. يرجى المحاولة مرة أخرى.',
+      'adReloading': 'جارٍ إعادة تحميل الإعلان...',
+      'startupError': 'خطأ في بدء التشغيل',
+      'invalidPortRange': 'يجب أن يكون رقم المنفذ بين 1 و 65535.',
+      'timeExpiredError': 'انتهى وقت الاتصال. يرجى مشاهدة إعلان بمكافأة للحصول على وقت إضافي.',
+      'notifConnectedTitle': 'ME Spoofing - متصل 🛡️',
+      'notifDownload': 'تنزيل',
+      'notifUpload': 'رفع',
+      'notifTotal': 'الإجمالي',
+      'notifActiveConns': 'الاتصالات النشطة',
+      'notifDisconnect': 'قطع الاتصال',
+      'notifExpiredTitle': 'ME Spoofing - انتهى وقت الاتصال',
+      'notifExpiredBody': 'افتح التطبيق وشاهد إعلان المكافأة لتمديد الوقت.',
+      'notifWarningTitle': 'ME Spoofing - وقت الاتصال أوشك على الانتهاء',
+      'notifWarningBody': 'تبقّى حوالي {mins} دقيقة. بعد تمديد الوقت، اضغط على اتصال يدويًا.',
+      'routingGuideTitle': 'دليل خطوات اتصال التطبيقات',
+      'sshTunnelHint': 'SSH / Tunnel: لتطبيقات SSH (مثل Termius أو JuiceSSH)، اضبط المضيف على 127.0.0.1 والمنفذ على 22.',
 },
     'zh': {
       'appName': 'ME Spoofing',
@@ -541,6 +610,25 @@ class AppLocalizations {
       'copiedToClipboard': '已复制到剪贴板！',
       'openAppError': '无法自动打开应用，请手动启动。',
       'dnsMultiResolversHint': '可输入多个数字 IP (如 8.8.8.8, 1.1.1.1) 或域名，用逗号分隔。',
+      'systemDefault': '系统默认',
+      'preparingAd': '正在准备激励视频广告...',
+      'adNotReady': '激励视频广告尚未就绪或无网络连接，请重试。',
+      'adReloading': '正在重新加载广告...',
+      'startupError': '启动错误',
+      'invalidPortRange': '端口号必须在 1 到 65535 之间。',
+      'timeExpiredError': '连接时间已到期，请观看激励广告以延长时间。',
+      'notifConnectedTitle': 'ME Spoofing - 已连接 🛡️',
+      'notifDownload': '下载',
+      'notifUpload': '上传',
+      'notifTotal': '总计',
+      'notifActiveConns': '活跃连接',
+      'notifDisconnect': '断开连接',
+      'notifExpiredTitle': 'ME Spoofing - 连接时间已到期',
+      'notifExpiredBody': '打开应用并观看激励广告即可延长连接时间。',
+      'notifWarningTitle': 'ME Spoofing - 连接时间即将到期',
+      'notifWarningBody': '剩余约 {mins} 分钟。延长时间后请手动点击连接。',
+      'routingGuideTitle': '客户端连接指南',
+      'sshTunnelHint': 'SSH / Tunnel：对于 SSH 客户端（如 Termius 或 JuiceSSH），将主机设为 127.0.0.1，端口设为 22。',
 },
     'ru': {
       'appName': 'ME Spoofing',
@@ -657,6 +745,25 @@ class AppLocalizations {
       'copiedToClipboard': 'Скопировано в буфер обмена!',
       'openAppError': 'Не удалось открыть приложение; запустите его вручную.',
       'dnsMultiResolversHint': 'Можно указать несколько числовых IP (напр. 8.8.8.8, 1.1.1.1) или доменов через запятую.',
+      'systemDefault': 'Системный по умолчанию',
+      'preparingAd': 'Подготовка и загрузка рекламы...',
+      'adNotReady': 'Реклама еще не готова или нет подключения к интернету. Повторите попытку.',
+      'adReloading': 'Перезагрузка рекламы...',
+      'startupError': 'Ошибка запуска',
+      'invalidPortRange': 'Номер порта должен быть от 1 до 65535.',
+      'timeExpiredError': 'Время подключения истекло. Посмотрите рекламу с наградой, чтобы продлить время.',
+      'notifConnectedTitle': 'ME Spoofing - Подключено 🛡️',
+      'notifDownload': 'Загрузка',
+      'notifUpload': 'Отдача',
+      'notifTotal': 'Всего',
+      'notifActiveConns': 'Активные подключения',
+      'notifDisconnect': 'Отключить',
+      'notifExpiredTitle': 'ME Spoofing - Время истекло',
+      'notifExpiredBody': 'Откройте приложение и посмотрите рекламу, чтобы продлить время.',
+      'notifWarningTitle': 'ME Spoofing - Время истекает',
+      'notifWarningBody': 'Осталось около {mins} мин. После продления нажмите «Подключить» вручную.',
+      'routingGuideTitle': 'Руководство по подключению клиентов',
+      'sshTunnelHint': 'SSH / Tunnel: для SSH-клиентов (например, Termius или JuiceSSH) укажите хост 127.0.0.1 и порт 22.',
 },
     'es': {
       'appName': 'ME Spoofing',
@@ -771,6 +878,25 @@ class AppLocalizations {
       'starOnGithub': 'Apoyar con estrella en GitHub',
       'couldNotOpenLink': 'No se pudo abrir el enlace.',
       'dnsMultiResolversHint': 'Puedes ingresar varias IP numéricas (ej. 8.8.8.8, 1.1.1.1) o dominios separados por coma.',
+      'systemDefault': 'Predeterminado del sistema',
+      'preparingAd': 'Preparando anuncio de video con recompensa...',
+      'adNotReady': 'El anuncio aún no está disponible o no hay conexión a internet. Inténtalo de nuevo.',
+      'adReloading': 'Recargando anuncio...',
+      'startupError': 'Error de inicio',
+      'invalidPortRange': 'El número de puerto debe estar entre 1 y 65535.',
+      'timeExpiredError': 'El tiempo de conexión ha expirado. Mira un anuncio con recompensa para añadir tiempo.',
+      'notifConnectedTitle': 'ME Spoofing - Conectado 🛡️',
+      'notifDownload': 'Descarga',
+      'notifUpload': 'Subida',
+      'notifTotal': 'Total',
+      'notifActiveConns': 'Conexiones activas',
+      'notifDisconnect': 'Desconectar',
+      'notifExpiredTitle': 'ME Spoofing - Tiempo expirado',
+      'notifExpiredBody': 'Abre la app y mira un anuncio con recompensa para ampliar el tiempo.',
+      'notifWarningTitle': 'ME Spoofing - Tiempo por expirar',
+      'notifWarningBody': 'Quedan unos {mins} minutos. Tras ampliar el tiempo, pulsa Conectar manualmente.',
+      'routingGuideTitle': 'Guía de conexión de clientes',
+      'sshTunnelHint': 'SSH / Tunnel: para clientes SSH (como Termius o JuiceSSH), configura el host en 127.0.0.1 y el puerto en 22.',
 },
     'it': {
       'appName': 'ME Spoofing',
@@ -885,6 +1011,25 @@ class AppLocalizations {
       'starOnGithub': 'Supporta con una stella su GitHub',
       'couldNotOpenLink': 'Impossibile aprire il link.',
       'dnsMultiResolversHint': 'È possibile inserire più IP numerici (es. 8.8.8.8, 1.1.1.1) o domini separati da virgola.',
+      'systemDefault': 'Predefinito di sistema',
+      'preparingAd': 'Preparazione annuncio video con premio...',
+      'adNotReady': 'Annuncio non ancora pronto o nessuna connessione internet. Riprova.',
+      'adReloading': 'Ricaricamento annuncio...',
+      'startupError': 'Errore di avvio',
+      'invalidPortRange': 'Il numero di porta deve essere compreso tra 1 e 65535.',
+      'timeExpiredError': 'Tempo di connessione scaduto. Guarda un annuncio con premio per aggiungere tempo.',
+      'notifConnectedTitle': 'ME Spoofing - Connesso 🛡️',
+      'notifDownload': 'Download',
+      'notifUpload': 'Upload',
+      'notifTotal': 'Totale',
+      'notifActiveConns': 'Connessioni attive',
+      'notifDisconnect': 'Disconnetti',
+      'notifExpiredTitle': 'ME Spoofing - Tempo scaduto',
+      'notifExpiredBody': 'Apri l’app e guarda un annuncio con premio per estendere il tempo.',
+      'notifWarningTitle': 'ME Spoofing - Tempo in esaurimento',
+      'notifWarningBody': 'Circa {mins} minuti rimanenti. Dopo l’estensione, tocca Connetti manualmente.',
+      'routingGuideTitle': 'Guida alla connessione client',
+      'sshTunnelHint': 'SSH / Tunnel: per i client SSH (come Termius o JuiceSSH), imposta host su 127.0.0.1 e porta su 22.',
 },
     'de': {
       'appName': 'ME Spoofing',
@@ -999,6 +1144,25 @@ class AppLocalizations {
       'starOnGithub': 'Mit Stern auf GitHub unterstützen',
       'couldNotOpenLink': 'Link konnte nicht geöffnet werden.',
       'dnsMultiResolversHint': 'Sie können mehrere numerische IPs (z. B. 8.8.8.8, 1.1.1.1) oder Domains durch Kommas getrennt eingeben.',
+      'systemDefault': 'Systemstandard',
+      'preparingAd': 'Belohnte Videoanzeige wird vorbereitet...',
+      'adNotReady': 'Videoanzeige noch nicht bereit oder keine Internetverbindung. Bitte erneut versuchen.',
+      'adReloading': 'Anzeige wird neu geladen...',
+      'startupError': 'Startfehler',
+      'invalidPortRange': 'Die Portnummer muss zwischen 1 und 65535 liegen.',
+      'timeExpiredError': 'Verbindungszeit abgelaufen. Bitte eine belohnte Anzeige ansehen, um Zeit hinzuzufügen.',
+      'notifConnectedTitle': 'ME Spoofing - Verbunden 🛡️',
+      'notifDownload': 'Download',
+      'notifUpload': 'Upload',
+      'notifTotal': 'Gesamt',
+      'notifActiveConns': 'Aktive Verbindungen',
+      'notifDisconnect': 'Trennen',
+      'notifExpiredTitle': 'ME Spoofing - Zeit abgelaufen',
+      'notifExpiredBody': 'Öffne die App und sieh dir eine belohnte Anzeige an, um Zeit zu verlängern.',
+      'notifWarningTitle': 'ME Spoofing - Zeit läuft ab',
+      'notifWarningBody': 'Noch ca. {mins} Minuten verbleibend. Nach der Verlängerung bitte manuell auf Verbinden tippen.',
+      'routingGuideTitle': 'Client-Verbindungsanleitung',
+      'sshTunnelHint': 'SSH / Tunnel: Für SSH-Clients (wie Termius oder JuiceSSH) Host auf 127.0.0.1 und Port auf 22 setzen.',
 },
     'fr': {
       'appName': 'ME Spoofing',
@@ -1113,6 +1277,25 @@ class AppLocalizations {
       'starOnGithub': 'Soutenir avec une étoile sur GitHub',
       'couldNotOpenLink': 'Impossible d\'ouvrir le lien.',
       'dnsMultiResolversHint': 'Vous pouvez saisir plusieurs adresses IP numériques (ex. 8.8.8.8, 1.1.1.1) ou domaines séparés par une virgule.',
+      'systemDefault': 'Par défaut du système',
+      'preparingAd': 'Préparation de la vidéo publicitaire récompensée...',
+      'adNotReady': 'La vidéo publicitaire n’est pas encore prête ou aucune connexion Internet. Veuillez réessayer.',
+      'adReloading': 'Rechargement de la publicité...',
+      'startupError': 'Erreur de démarrage',
+      'invalidPortRange': 'Le numéro de port doit être compris entre 1 et 65535.',
+      'timeExpiredError': 'Le temps de connexion a expiré. Regardez une publicité récompensée pour ajouter du temps.',
+      'notifConnectedTitle': 'ME Spoofing - Connecté 🛡️',
+      'notifDownload': 'Téléchargement',
+      'notifUpload': 'Envoi',
+      'notifTotal': 'Total',
+      'notifActiveConns': 'Connexions actives',
+      'notifDisconnect': 'Déconnecter',
+      'notifExpiredTitle': 'ME Spoofing - Temps expiré',
+      'notifExpiredBody': 'Ouvrez l’application et regardez une publicité récompensée pour prolonger le temps.',
+      'notifWarningTitle': 'ME Spoofing - Temps presque écoulé',
+      'notifWarningBody': 'Environ {mins} minutes restantes. Après prolongation, appuyez manuellement sur Connecter.',
+      'routingGuideTitle': 'Guide de connexion client',
+      'sshTunnelHint': 'SSH / Tunnel : pour les clients SSH (comme Termius ou JuiceSSH), définissez l’hôte sur 127.0.0.1 et le port sur 22.',
 },
     'hi': {
       'appName': 'ME Spoofing',
@@ -1225,6 +1408,25 @@ class AppLocalizations {
       'starOnGithub': 'गिटहब पर स्टार देकर समर्थन करें',
       'couldNotOpenLink': 'लिंक नहीं खोला जा सका।',
       'dnsMultiResolversHint': 'आप अल्पविराम से अलग किए गए एकाधिक संख्यात्मक आईपी (जैसे 8.8.8.8, 1.1.1.1) या डोमेन दर्ज कर सकते हैं。',
+      'systemDefault': 'सिस्टम डिफ़ॉल्ट',
+      'preparingAd': 'पुरस्कृत वीडियो विज्ञापन तैयार किया जा रहा है...',
+      'adNotReady': 'विज्ञापन अभी तैयार नहीं है या इंटरनेट कनेक्शन नहीं है। कृपया पुनः प्रयास करें।',
+      'adReloading': 'विज्ञापन पुनः लोड हो रहा है...',
+      'startupError': 'स्टार्टअप त्रुटि',
+      'invalidPortRange': 'पोर्ट नंबर 1 और 65535 के बीच होना चाहिए।',
+      'timeExpiredError': 'कनेक्शन समय समाप्त हो गया है। समय जोड़ने के लिए कृपया पुरस्कृत विज्ञापन देखें।',
+      'notifConnectedTitle': 'ME Spoofing - कनेक्टेड 🛡️',
+      'notifDownload': 'डाउनलोड',
+      'notifUpload': 'अपलोड',
+      'notifTotal': 'कुल',
+      'notifActiveConns': 'सक्रिय कनेक्शन',
+      'notifDisconnect': 'डिस्कनेक्ट करें',
+      'notifExpiredTitle': 'ME Spoofing - कनेक्शन समय समाप्त',
+      'notifExpiredBody': 'समय बढ़ाने के लिए ऐप खोलें और पुरस्कृत विज्ञापन देखें।',
+      'notifWarningTitle': 'ME Spoofing - समय समाप्त होने वाला है',
+      'notifWarningBody': 'लगभग {mins} मिनट शेष हैं। समय बढ़ाने के बाद मैन्युअल रूप से कनेक्ट पर टैप करें।',
+      'routingGuideTitle': 'क्लाइंट कनेक्शन गाइड',
+      'sshTunnelHint': 'SSH / Tunnel: SSH क्लाइंट (जैसे Termius या JuiceSSH) के लिए होस्ट 127.0.0.1 और पोर्ट 22 सेट करें।',
 },
   };
 
@@ -1359,6 +1561,25 @@ class AppLocalizations {
   String get copiedToClipboard => translate('copiedToClipboard');
   String get openAppError => translate('openAppError');
   String get dnsMultiResolversHint => translate('dnsMultiResolversHint');
+  String get systemDefault => translate('systemDefault');
+  String get preparingAd => translate('preparingAd');
+  String get adNotReady => translate('adNotReady');
+  String get adReloading => translate('adReloading');
+  String get startupError => translate('startupError');
+  String get invalidPortRange => translate('invalidPortRange');
+  String get timeExpiredError => translate('timeExpiredError');
+  String get notifConnectedTitle => translate('notifConnectedTitle');
+  String get notifDownload => translate('notifDownload');
+  String get notifUpload => translate('notifUpload');
+  String get notifTotal => translate('notifTotal');
+  String get notifActiveConns => translate('notifActiveConns');
+  String get notifDisconnect => translate('notifDisconnect');
+  String get notifExpiredTitle => translate('notifExpiredTitle');
+  String get notifExpiredBody => translate('notifExpiredBody');
+  String get notifWarningTitle => translate('notifWarningTitle');
+  String get notifWarningBody => translate('notifWarningBody');
+  String get routingGuideTitle => translate('routingGuideTitle');
+  String get sshTunnelHint => translate('sshTunnelHint');
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import '../l10n/app_localizations.dart';
 
 /// Communicates with the native Android ProxyForegroundService.
 ///
@@ -50,9 +51,10 @@ class SystemNotificationService {
     required String totalUploaded,
     required int activeConnections,
   }) {
-    return '⬇ دانلود: $downloadSpeed  (مجموع: $totalDownloaded)\n'
-        '⬆ آپلود: $uploadSpeed  (مجموع: $totalUploaded)\n'
-        '⚡ اتصالات فعال: $activeConnections';
+    final loc = AppLocalizations.current;
+    return '⬇ ${loc.notifDownload}: $downloadSpeed  (${loc.notifTotal}: $totalDownloaded)\n'
+        '⬆ ${loc.notifUpload}: $uploadSpeed  (${loc.notifTotal}: $totalUploaded)\n'
+        '⚡ ${loc.notifActiveConns}: $activeConnections';
   }
 
   /// Start the foreground service and show connected notification.
@@ -65,6 +67,7 @@ class SystemNotificationService {
     required int activeConnections,
   }) async {
     if (!Platform.isAndroid) return;
+    final loc = AppLocalizations.current;
     final content = _formatContent(
       downloadSpeed: downloadSpeed,
       totalDownloaded: totalDownloaded,
@@ -73,7 +76,7 @@ class SystemNotificationService {
       activeConnections: activeConnections,
     );
     await _channel.invokeMethod('startService', {
-      'title': 'ME Spoofing - اتصال فعال 🛡️',
+      'title': loc.notifConnectedTitle,
       'content': content,
     });
   }
@@ -88,6 +91,7 @@ class SystemNotificationService {
   }) async {
     if (!Platform.isAndroid) return;
     try {
+      final loc = AppLocalizations.current;
       final content = _formatContent(
         downloadSpeed: downloadSpeed,
         totalDownloaded: totalDownloaded,
@@ -96,7 +100,7 @@ class SystemNotificationService {
         activeConnections: activeConnections,
       );
       await _channel.invokeMethod('updateNotification', {
-        'title': 'ME Spoofing - اتصال فعال 🛡️',
+        'title': loc.notifConnectedTitle,
         'content': content,
         'isConnected': true,
       });
@@ -113,20 +117,22 @@ class SystemNotificationService {
 
   Future<void> showExpired() async {
     if (!Platform.isAndroid) return;
+    final loc = AppLocalizations.current;
     await _channel.invokeMethod('expireService', {
-      'title': 'ME Spoofing - زمان اتصال تمام شد',
-      'content':
-          'برای تمدید زمان، برنامه را باز کنید و تبلیغ پاداشی را تماشا کنید.',
+      'title': loc.notifExpiredTitle,
+      'content': loc.notifExpiredBody,
     });
   }
 
   Future<void> showTimeWarning({required Duration remaining}) async {
     if (!Platform.isAndroid) return;
+    final loc = AppLocalizations.current;
     await _channel.invokeMethod('showTimeWarning', {
-      'title': 'ME Spoofing - زمان اتصال رو به پایان است',
-      'content':
-          'حدود ${remaining.inMinutes} دقیقه تا پایان زمان مانده است. '
-          'پس از تمدید زمان، برای اتصال دوباره باید دکمهٔ اتصال را دستی بزنید.',
+      'title': loc.notifWarningTitle,
+      'content': loc.notifWarningBody.replaceAll(
+        '{mins}',
+        remaining.inMinutes.toString(),
+      ),
     });
   }
 }

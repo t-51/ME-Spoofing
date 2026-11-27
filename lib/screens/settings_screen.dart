@@ -149,10 +149,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("شماره پورت باید عددی بین ۱ تا ۶۵۵۳۵ باشد."),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).invalidPortRange),
           backgroundColor: Colors.orangeAccent,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -1380,10 +1380,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontWeight: FontWeight.w600,
               ),
               items: AppLanguage.values.map((lang) {
+                final label = lang == AppLanguage.system
+                    ? AppLocalizations.of(context).systemDefault
+                    : lang.displayName;
                 return DropdownMenuItem<AppLanguage>(
                   value: lang,
                   child: Text(
-                    lang.displayName,
+                    label,
                     style: TextStyle(color: textPrimary, fontSize: 12.5),
                   ),
                 );

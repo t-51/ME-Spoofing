@@ -94,7 +94,7 @@ class ProxyForegroundService : Service() {
 
             else -> { // ACTION_START or null (system restart via START_STICKY)
                 val title   = intent?.getStringExtra(EXTRA_TITLE)   ?: "ME Spoofing"
-                val content = intent?.getStringExtra(EXTRA_CONTENT) ?: "پروکسی در حال اجراست…"
+                val content = intent?.getStringExtra(EXTRA_CONTENT) ?: "Proxy is running..."
                 currentTitle = title
                 currentContent = content
                 val notificationManager =
@@ -113,8 +113,8 @@ class ProxyForegroundService : Service() {
     /** Keep the foreground notification current after the task leaves recents. */
     override fun onTaskRemoved(rootIntent: Intent?) {
         super.onTaskRemoved(rootIntent)
-        currentTitle = "ME Spoofing - فعال در پس‌زمینه 🛡️"
-        currentContent = "پروکسی در حال اجرا در پس‌زمینه است"
+        currentTitle = "ME Spoofing - Active in background 🛡️"
+        currentContent = "Proxy is running in background"
         startAsForeground(
             buildNotification(
                 currentTitle,
@@ -198,13 +198,12 @@ class ProxyForegroundService : Service() {
             .setAutoCancel(!ongoing)
 
         if (connected) {
-            // "قطع اتصال" action button
             val stopIntent = Intent(this, ProxyForegroundService::class.java)
                 .setAction(ACTION_STOP)
             val stopPi = PendingIntent.getService(this, 1, stopIntent, flags)
             builder.addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
-                "قطع اتصال",
+                if (java.util.Locale.getDefault().language == "fa") "قطع اتصال" else "Disconnect",
                 stopPi
             )
         }

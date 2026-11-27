@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../l10n/app_localizations.dart';
 import '../services/ad_manager.dart';
 
 class AdBannerWidget extends StatefulWidget {
@@ -121,9 +122,9 @@ class _AdBannerWidgetState extends State<AdBannerWidget>
       child: _isLoaded && _bannerAd != null
           ? AdWidget(ad: _bannerAd!)
           : _hasLoadError
-          ? const Text(
-              "تبلیغ در حال بارگیری مجدد است",
-              style: TextStyle(color: Colors.white38, fontSize: 11),
+          ? Text(
+              AppLocalizations.of(context).adReloading,
+              style: const TextStyle(color: Colors.white38, fontSize: 11),
             )
           : const Center(
               child: SizedBox(

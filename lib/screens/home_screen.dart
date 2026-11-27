@@ -140,6 +140,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _watchRewardedAd() {
     final isDark = ThemeController.instance.isDarkMode(context);
+    final loc = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -152,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                "در حال آماده‌سازی و پخش ویدیوی تبلیغاتی...",
+                loc.preparingAd,
                 style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF111827),
                   fontSize: 13,
@@ -168,6 +169,7 @@ class _HomeScreenState extends State<HomeScreen>
       onUserEarnedReward: (ad, reward) {
         _manager.addRewardTime();
         if (mounted) {
+          final l = AppLocalizations.of(context);
           showDialog(
             context: context,
             builder: (ctx) => AlertDialog(
@@ -183,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    "پاداش دریافت شد!",
+                    l.rewardEarned,
                     style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF111827),
                       fontWeight: FontWeight.bold,
@@ -192,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ],
               ),
               content: Text(
-                "۴ ساعت به زمان اعتبار اتصال شما افزوده شد!",
+                l.rewardNotice,
                 style: TextStyle(
                   color: isDark
                       ? const Color(0xFF8B949E)
@@ -209,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text("عالی"),
+                  child: Text(l.great),
                 ),
               ],
             ),
@@ -218,11 +220,10 @@ class _HomeScreenState extends State<HomeScreen>
       },
       onFailed: () {
         if (mounted) {
+          final l = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "ویدیو تبلیغاتی هنوز در دسترس نیست یا اینترنت متصل نیست. لطفاً مجدداً امتحان کنید.",
-              ),
+            SnackBar(
+              content: Text(l.adNotReady),
               backgroundColor: Colors.orangeAccent,
             ),
           );
@@ -402,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         ).showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              "خطا در راه‌اندازی: $e",
+                                              "${loc.startupError}: $e",
                                             ),
                                             backgroundColor: Colors.redAccent,
                                           ),

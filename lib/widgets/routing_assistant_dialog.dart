@@ -430,7 +430,7 @@ class _RoutingAssistantDialogState extends State<RoutingAssistantDialog> {
 
               // --- STEP-BY-STEP APP TUTORIALS ---
               Text(
-                "📱 ${loc.languageCode == 'fa' ? 'راهنمای گام‌به‌گام اتصال نرم‌افزارها' : 'Client Connection Guides'}:",
+                "📱 ${loc.routingGuideTitle}:",
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
@@ -636,7 +636,7 @@ class _RoutingAssistantDialogState extends State<RoutingAssistantDialog> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                "SSH / Tunnel: برای کلاینت‌های SSH (مانند Termius یا JuiceSSH)، هاست را روی 127.0.0.1 و پورت را روی 22 تنظیم کنید تا ترافیک مستقیماً از طریق پروکسی لوکال رله شود.",
+                                loc.sshTunnelHint,
                                 style: TextStyle(
                                   fontSize: 11,
                                   height: 1.45,
