@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Google Play Compliant](https://img.shields.io/badge/Google%20Play-VPN%20Exempt%20(Userspace%20Proxy)-brightgreen)](https://developer.android.com/distribute/play-policies)
 [![Languages](https://img.shields.io/badge/Languages-10%20Locales-blue)](lib/l10n/app_localizations.dart)
-[![Version](https://img.shields.io/badge/Version-1.1.0-orange)](pubspec.yaml)
+[![Version](https://img.shields.io/badge/Version-1.1.1-orange)](pubspec.yaml)
 
 **ME Spoofing** is a high-performance, 100% userspace proxy relay and Deep Packet Inspection (DPI) circumvention engine for **MHPanel**. It bypasses internet censorship via TCP micro-fragmentation, decoy SNI injection, and Cloudflare Anycast IP fronting — with no VPN permissions, no TUN interfaces, and full Google Play compliance.
 

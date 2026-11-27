@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and
 
 ---
 
+## [1.1.1] — 2026-11-27 — "Desktop Binaries, Subscription Sync & Full L10n"
+
+### Added
+- **Desktop / CLI Go Clients (`desktop/`):** Moved standalone Go client (`snispoof-client`) for Windows, Linux (`amd64`, `arm64`, `arm`), Termux, and macOS into `ME-Spoofing` with automated GitHub Release binaries.
+- **Subscription Link Importer:** Added `SubscriptionService` in Settings to fetch MHPanel subscription URLs (Base64, URI lists, Sing-box/Xray JSON) and automatically extract & save ports, domains, and IPs.
+- **Dynamic Routing Assistant:** Ports, domains, and bypass IPs in the Routing Assistant are now dynamically populated from imported subscription/panel data.
+
+### Improved
+- **Theme & Language Picker UI:** Redesigned Appearance segmented control and added a full-width Language Picker modal sheet with native/English names and locale badges.
+- **Complete 10-Language Localization:** Fixed remaining hardcoded Persian strings in dialogs, snackbars, foreground service notifications, and Android native service actions.
+
+---
+
 ## [1.1.0] — 2026-11-11 — "Streamlined & Stable"
 
 ### 💥 Breaking Changes

@@ -58,4 +58,5 @@ app.*.map.json
 *.keystore
 
 SNI-Spoofing-1.0/
+desktop/dist/
 *.zip
