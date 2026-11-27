@@ -6,6 +6,7 @@ import '../theme_controller.dart';
 
 const _githubRepositoryUrl = 'https://github.com/t-51/ME-Spoofing';
 const _telegramChannelUrl = 'https://t.me/kigaping_fa';
+const _donateUrl = 'https://donito.me/ME_Script';
 
 void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
   final loc = AppLocalizations.of(context);
@@ -283,6 +284,31 @@ void showCommunityDialog(BuildContext context, {VoidCallback? onDismissed}) {
                     onPressed: () => _openCommunityLink(
                       context,
                       Uri.parse(_githubRepositoryUrl),
+                      loc.couldNotOpenLink,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF4757),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.favorite_rounded, size: 18),
+                    label: const Text(
+                      "Donate (donito.me/ME_Script)",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    onPressed: () => _openCommunityLink(
+                      context,
+                      Uri.parse(_donateUrl),
                       loc.couldNotOpenLink,
                     ),
                   ),

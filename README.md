@@ -5,6 +5,7 @@
 [![Google Play Compliant](https://img.shields.io/badge/Google%20Play-VPN%20Exempt%20(Userspace%20Proxy)-brightgreen)](https://developer.android.com/distribute/play-policies)
 [![Languages](https://img.shields.io/badge/Languages-10%20Locales-blue)](lib/l10n/app_localizations.dart)
 [![Version](https://img.shields.io/badge/Version-1.1.1-orange)](pubspec.yaml)
+[![Donate](https://img.shields.io/badge/💖%20Donate-Donito.me-ff4757.svg)](https://donito.me/ME_Script)
 
 **ME Spoofing** is a high-performance, 100% userspace proxy relay and Deep Packet Inspection (DPI) circumvention engine for **MHPanel**. It bypasses internet censorship via TCP micro-fragmentation, decoy SNI injection, and Cloudflare Anycast IP fronting — with no VPN permissions, no TUN interfaces, and full Google Play compliance.
 
@@ -81,6 +82,23 @@ flutter test
 # Build production APK
 flutter build apk --release
 ```
+
+---
+
+## 🔗 Ecosystem & Related Projects
+
+- 🖥️ **[MHPanel](https://github.com/t-51/MHPanel)** — Enterprise Unified VPN, Anti-Censorship Tunnels & Sing-box Management Panel
+- 🤖 **[MS_VPN_BOT](https://github.com/t-51/MS_VPN_BOT)** — Smart Multi-Protocol Telegram VPN Store & Management Bot for MHPanel
+- 📱 **[ME-Spoofing](https://github.com/t-51/ME-Spoofing)** — Userspace Anti-DPI Client (Android + Windows / Linux / macOS / Termux)
+
+---
+
+## 💖 Support & Donations
+
+If **ME Spoofing** helps you stay connected, consider supporting ongoing anti-DPI research and server maintenance:
+
+- ☕ **Donate via Donito:** [https://donito.me/ME_Script](https://donito.me/ME_Script)
+- 📢 **Telegram Channel:** [@kigaping_fa](https://t.me/kigaping_fa)
 
 ---
 
