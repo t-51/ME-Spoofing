@@ -42,13 +42,19 @@ class ProfileGenerator {
   ];
 
   static List<String> getBypassIps() {
-    final ips = <String>{'127.0.0.1', ...defaultCleanIps};
+    final ips = <String>{'127.0.0.1'};
     final manager = ProxyManager.instance;
+    if (manager.subImportedIps.isNotEmpty) {
+      ips.addAll(manager.subImportedIps);
+    }
     if (manager.cfCleanIp.isNotEmpty) ips.add(manager.cfCleanIp);
     for (final host in manager.mhServerHosts) {
       if (RegExp(r'^[0-9.]+$').hasMatch(host.trim())) {
         ips.add(host.trim());
       }
+    }
+    if (manager.subImportedIps.isEmpty) {
+      ips.addAll(defaultCleanIps);
     }
     return ips.toList();
   }
@@ -57,6 +63,7 @@ class ProfileGenerator {
     final domains = <String>{};
     final manager = ProxyManager.instance;
 
+    domains.addAll(manager.subImportedDomains);
     if (manager.cfServerSni.isNotEmpty) domains.add(manager.cfServerSni.trim());
     if (manager.fakeSni.isNotEmpty && manager.fakeSni != 'Custom ...') {
       domains.add(manager.fakeSni.trim());
@@ -80,6 +87,16 @@ class ProfileGenerator {
     }
 
     return domains.toList();
+  }
+
+  static List<int> getDynamicPorts({ParsedProxyConfig? config}) {
+    final ports = <int>{...ProxyManager.instance.mhServerPorts};
+    ports.addAll(ProxyManager.instance.subImportedPorts);
+    if (config != null && config.isValid) {
+      ports.add(config.port);
+    }
+    final list = ports.toList()..sort();
+    return list;
   }
 
   static ParsedProxyConfig parse(String input) {
@@ -120,7 +137,10 @@ class ProfileGenerator {
 
     if (trimmed.startsWith('trojan://') ||
         trimmed.startsWith('vless://') ||
-        trimmed.startsWith('ss://')) {
+        trimmed.startsWith('ss://') ||
+        trimmed.startsWith('hy2://') ||
+        trimmed.startsWith('hysteria2://') ||
+        trimmed.startsWith('tuic://')) {
       try {
         final uri = Uri.parse(trimmed);
         final proto = uri.scheme.toLowerCase();

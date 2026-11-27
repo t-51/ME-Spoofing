@@ -85,6 +85,60 @@ class ProxyManager extends ChangeNotifier {
     saveSettingsToDisk();
   }
 
+  // --- Subscription Imported Data ---
+  String _subscriptionUrl = "";
+  List<String> _subImportedDomains = [];
+  List<String> _subImportedIps = [];
+  List<int> _subImportedPorts = [];
+  int _subLastUpdatedMs = 0;
+
+  String get subscriptionUrl => _subscriptionUrl;
+  List<String> get subImportedDomains => List.unmodifiable(_subImportedDomains);
+  List<String> get subImportedIps => List.unmodifiable(_subImportedIps);
+  List<int> get subImportedPorts => List.unmodifiable(_subImportedPorts);
+  int get subLastUpdatedMs => _subLastUpdatedMs;
+
+  Future<void> applySubscriptionImport({
+    required String url,
+    required List<String> domains,
+    required List<String> ips,
+    required List<int> ports,
+  }) async {
+    _subscriptionUrl = url.trim();
+    _subImportedDomains = domains.where((d) => d.trim().isNotEmpty).toSet().toList();
+    _subImportedIps = ips.where((ip) => ip.trim().isNotEmpty).toSet().toList();
+    _subImportedPorts = (ports.where((p) => p > 0 && p <= 65535).toSet().toList()..sort());
+    _subLastUpdatedMs = DateTime.now().millisecondsSinceEpoch;
+
+    // Merge extracted ports into active relay ports
+    if (_subImportedPorts.isNotEmpty) {
+      final mergedPorts = <int>{..._subImportedPorts, ..._mhServerPorts};
+      _mhServerPorts = mergedPorts.toList()..sort();
+    }
+
+    // Update server hosts (replace placeholder default if still set)
+    final extractedHosts = <String>[..._subImportedIps, ..._subImportedDomains];
+    if (extractedHosts.isNotEmpty) {
+      final currentIsDefault =
+          _mhServerHosts.length == 1 && _mhServerHosts.first == "212.227.143.16";
+      final mergedHosts = <String>{
+        if (!currentIsDefault) ..._mhServerHosts,
+        ...extractedHosts,
+      };
+      _mhServerHosts = mergedHosts.toList();
+    }
+
+    if (_subImportedDomains.isNotEmpty) {
+      _cfServerSni = _subImportedDomains.first;
+    }
+    if (_subImportedIps.isNotEmpty) {
+      _cfCleanIp = _subImportedIps.first;
+    }
+
+    await saveSettingsToDisk();
+    notifyListeners();
+  }
+
   // --- MHPanel Dedicated Settings ---
   List<String> _mhServerHosts = ["212.227.143.16"];
   int _mhDaemonPort = 15443;
@@ -769,6 +823,11 @@ class ProxyManager extends ChangeNotifier {
         'enableFakePacket': _enableFakePacket,
         'fakeTtl': _fakeTtl,
         'enableSniSpoofing': _enableSniSpoofing,
+        'subscriptionUrl': _subscriptionUrl,
+        'subImportedDomains': _subImportedDomains,
+        'subImportedIps': _subImportedIps,
+        'subImportedPorts': _subImportedPorts,
+        'subLastUpdatedMs': _subLastUpdatedMs,
       };
       await file.writeAsString(jsonEncode(data));
     } catch (e) {
@@ -857,6 +916,27 @@ class ProxyManager extends ChangeNotifier {
       if (data['mhServerPorts'] != null) {
         final list = data['mhServerPorts'] as List;
         _mhServerPorts = list.map((e) => e as int).toList();
+      }
+      if (data['subscriptionUrl'] is String) {
+        _subscriptionUrl = data['subscriptionUrl'] as String;
+      }
+      if (data['subImportedDomains'] is List) {
+        _subImportedDomains = (data['subImportedDomains'] as List)
+            .whereType<String>()
+            .toList();
+      }
+      if (data['subImportedIps'] is List) {
+        _subImportedIps = (data['subImportedIps'] as List)
+            .whereType<String>()
+            .toList();
+      }
+      if (data['subImportedPorts'] is List) {
+        _subImportedPorts = (data['subImportedPorts'] as List)
+            .whereType<int>()
+            .toList();
+      }
+      if (data['subLastUpdatedMs'] is int) {
+        _subLastUpdatedMs = data['subLastUpdatedMs'] as int;
       }
 
       if (data['host'] != null) _host = data['host'];

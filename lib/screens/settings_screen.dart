@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import '../proxy/proxy_manager.dart';
 import '../services/locale_controller.dart';
+import '../services/subscription_service.dart';
 import '../theme_controller.dart';
 import '../widgets/community_dialog.dart';
 import '../widgets/routing_assistant_dialog.dart';
@@ -32,6 +34,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // --- Port Manager Input ---
   final TextEditingController _newPortController = TextEditingController();
+
+  // --- Subscription Importer ---
+  late TextEditingController _subUrlController;
+  bool _isImportingSub = false;
+  String _subStatusText = "";
+  bool _subStatusIsError = false;
 
   // --- Mode 2: Cloudflare Clean IP Controllers ---
   late TextEditingController _cfCleanIpController;
@@ -65,6 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _selectedTransportMode = _manager.transportMode;
 
     // Mode 1
+    _subUrlController = TextEditingController(text: _manager.subscriptionUrl);
     _serverHostController = TextEditingController(
       text: _manager.mhServerHostsString,
     );
@@ -119,6 +128,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _fragmentDelayController.dispose();
     _customSniController.dispose();
     _newPortController.dispose();
+    _subUrlController.dispose();
 
     _cfCleanIpController.dispose();
     _cfCleanPortController.dispose();
@@ -134,6 +144,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
+  }
+
+  Future<void> _importSubscription() async {
+    final loc = AppLocalizations.of(context);
+    final raw = _subUrlController.text.trim();
+    if (raw.isEmpty) {
+      setState(() {
+        _subStatusText = loc.subImportEmpty;
+        _subStatusIsError = true;
+      });
+      return;
+    }
+
+    setState(() {
+      _isImportingSub = true;
+      _subStatusText = "";
+      _subStatusIsError = false;
+    });
+
+    try {
+      final res = await SubscriptionService.fetchAndApply(raw);
+      if (!mounted) return;
+
+      _serverHostController.text = _manager.mhServerHostsString;
+      _serverPortsController.text = _manager.mhServerPortsString;
+      _cfCleanIpController.text = _manager.cfCleanIp;
+      _cfServerSniController.text = _manager.cfServerSni;
+
+      setState(() {
+        _isImportingSub = false;
+        if (res.hasAnyData) {
+          _subStatusIsError = false;
+          _subStatusText = loc.subImportSuccess
+              .replaceAll('{configs}', res.configCount.toString())
+              .replaceAll('{ports}', res.ports.length.toString())
+              .replaceAll('{domains}', res.domains.length.toString())
+              .replaceAll('{ips}', res.ips.length.toString());
+        } else {
+          _subStatusIsError = true;
+          _subStatusText = loc.subImportNoData;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isImportingSub = false;
+        _subStatusIsError = true;
+        _subStatusText = '${loc.subImportError}: $e';
+      });
+    }
   }
 
   void _addNewPort() {
@@ -321,91 +381,309 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   // --- زبان و ظاهر نرم‌افزار ---
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: surfaceColor,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: borderColor),
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // تم ظاهری
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.palette_outlined,
-                                  color: primaryBlue,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    loc.appearance,
-                                    style: TextStyle(
-                                      color: textPrimary,
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: primaryBlue.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.palette_outlined,
+                                color: primaryBlue,
+                                size: 18,
+                              ),
                             ),
-                            const SizedBox(height: 8),
-                            Center(
-                              child: _buildThemeSegment(
-                                currentMode: currentThemeMode,
-                                chipBgColor: chipBgColor,
-                                borderColor: borderColor,
-                                textPrimary: textPrimary,
-                                textSecondary: textSecondary,
-                                loc: loc,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                loc.appearance,
+                                style: TextStyle(
+                                  color: textPrimary,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
+                        _buildThemeSegment(
+                          currentMode: currentThemeMode,
+                          chipBgColor: chipBgColor,
+                          borderColor: borderColor,
+                          textPrimary: textPrimary,
+                          textSecondary: textSecondary,
+                          loc: loc,
+                        ),
+                        const SizedBox(height: 14),
                         Divider(color: borderColor, height: 1),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                         // زبان برنامه
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.language_rounded,
-                                  color: primaryBlue,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    loc.language,
-                                    style: TextStyle(
-                                      color: textPrimary,
-                                      fontSize: 13.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: primaryBlue.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.translate_rounded,
+                                color: primaryBlue,
+                                size: 18,
+                              ),
                             ),
-                            const SizedBox(height: 8),
-                            Center(
-                              child: _buildLanguageDropdown(
-                                surfaceColor: surfaceColor,
-                                borderColor: borderColor,
-                                textPrimary: textPrimary,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                loc.language,
+                                style: TextStyle(
+                                  color: textPrimary,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 10),
+                        _buildLanguageDropdown(
+                          surfaceColor: chipBgColor,
+                          borderColor: borderColor,
+                          textPrimary: textPrimary,
+                          textSecondary: textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // --- SUBSCRIPTION LINK IMPORTER ---
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: surfaceColor,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFF10B981).withOpacity(0.35),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.cloud_download_rounded,
+                                color: Color(0xFF10B981),
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    loc.subImportTitle,
+                                    style: TextStyle(
+                                      color: textPrimary,
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    loc.subImportDesc,
+                                    style: TextStyle(
+                                      color: textSecondary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _subUrlController,
+                          textDirection: TextDirection.ltr,
+                          style: TextStyle(
+                            color: textPrimary,
+                            fontSize: 12.5,
+                            fontFamily: 'monospace',
+                          ),
+                          decoration: InputDecoration(
+                            hintText: loc.subUrlHint,
+                            hintStyle: TextStyle(
+                              color: textSecondary,
+                              fontSize: 11.5,
+                            ),
+                            filled: true,
+                            fillColor: chipBgColor,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 11,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: borderColor),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF10B981),
+                                width: 1.4,
+                              ),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: const Icon(
+                                Icons.content_paste_rounded,
+                                size: 18,
+                                color: Color(0xFF10B981),
+                              ),
+                              onPressed: () async {
+                                final data = await Clipboard.getData(
+                                  'text/plain',
+                                );
+                                if (data?.text != null &&
+                                    data!.text!.trim().isNotEmpty) {
+                                  _subUrlController.text = data.text!.trim();
+                                  _importSubscription();
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 42,
+                          child: ElevatedButton.icon(
+                            onPressed: _isImportingSub
+                                ? null
+                                : _importSubscription,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: _isImportingSub
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(Icons.sync_rounded, size: 18),
+                            label: Text(
+                              _isImportingSub
+                                  ? loc.subImporting
+                                  : loc.subImportBtn,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_subStatusText.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: (_subStatusIsError
+                                      ? Colors.redAccent
+                                      : const Color(0xFF10B981))
+                                  .withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              _subStatusText,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: _subStatusIsError
+                                    ? Colors.redAccent
+                                    : const Color(0xFF10B981),
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (_manager.subImportedPorts.isNotEmpty ||
+                            _manager.subImportedDomains.isNotEmpty ||
+                            _manager.subImportedIps.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: chipBgColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (_manager.subImportedPorts.isNotEmpty)
+                                  Text(
+                                    '🔌 ${loc.extractedPorts}: ${_manager.subImportedPorts.join(', ')}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textPrimary,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                if (_manager.subImportedDomains.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '🌐 ${loc.extractedDomains}: ${_manager.subImportedDomains.join(', ')}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textPrimary,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ],
+                                if (_manager.subImportedIps.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '📡 ${loc.extractedIps}: ${_manager.subImportedIps.join(', ')}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: textPrimary,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1311,40 +1589,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color textSecondary,
     required AppLocalizations loc,
   }) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: chipBgColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: borderColor),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildSegmentItem(
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: chipBgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildSegmentItem(
               label: loc.themeSystem,
               icon: Icons.brightness_auto_rounded,
               selected: currentMode == ThemeMode.system,
               onTap: () => ThemeController.instance.setThemeMode(ThemeMode.system),
             ),
-            const SizedBox(width: 4),
-            _buildSegmentItem(
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildSegmentItem(
               label: loc.themeLight,
               icon: Icons.light_mode_rounded,
               selected: currentMode == ThemeMode.light,
               onTap: () => ThemeController.instance.setThemeMode(ThemeMode.light),
             ),
-            const SizedBox(width: 4),
-            _buildSegmentItem(
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildSegmentItem(
               label: loc.themeDark,
               icon: Icons.dark_mode_rounded,
               selected: currentMode == ThemeMode.dark,
               onTap: () => ThemeController.instance.setThemeMode(ThemeMode.dark),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1353,53 +1633,219 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Color surfaceColor,
     required Color borderColor,
     required Color textPrimary,
+    required Color textSecondary,
   }) {
     return ValueListenableBuilder<AppLanguage>(
       valueListenable: LocaleController.instance,
       builder: (context, currentLang, _) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-          decoration: BoxDecoration(
-            color: surfaceColor,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: borderColor),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<AppLanguage>(
-              value: currentLang,
-              dropdownColor: surfaceColor,
-              icon: Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: textPrimary,
-                size: 20,
-              ),
-              isDense: true,
-              style: TextStyle(
-                color: textPrimary,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-              ),
-              items: AppLanguage.values.map((lang) {
-                final label = lang == AppLanguage.system
-                    ? AppLocalizations.of(context).systemDefault
-                    : lang.displayName;
-                return DropdownMenuItem<AppLanguage>(
-                  value: lang,
-                  child: Text(
-                    label,
-                    style: TextStyle(color: textPrimary, fontSize: 12.5),
+        final loc = AppLocalizations.of(context);
+        final currentLabel = currentLang == AppLanguage.system
+            ? loc.systemDefault
+            : currentLang.displayName;
+        return InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showLanguagePicker(context, currentLang),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
                   ),
-                );
-              }).toList(),
-              onChanged: (lang) {
-                if (lang != null) {
-                  LocaleController.instance.setLanguage(lang);
-                }
-              },
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2855D9).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    currentLang.code.toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF2855D9),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    currentLabel,
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: textSecondary,
+                  size: 20,
+                ),
+              ],
             ),
           ),
         );
       },
+    );
+  }
+
+  void _showLanguagePicker(BuildContext context, AppLanguage currentLang) {
+    final isDark = ThemeController.instance.isDarkMode(context);
+    final loc = AppLocalizations.of(context);
+    final sheetBg = isDark ? const Color(0xFF131820) : Colors.white;
+    final textPrimary = isDark ? Colors.white : const Color(0xFF111827);
+    final textSecondary =
+        isDark ? const Color(0xFF8B949E) : const Color(0xFF6B7280);
+    final borderColor =
+        isDark ? const Color(0xFF21262D) : const Color(0xFFE5E7EB);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Directionality(
+        textDirection: loc.textDirection,
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          decoration: BoxDecoration(
+            color: sheetBg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: borderColor)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: borderColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              Text(
+                loc.language,
+                style: TextStyle(
+                  color: textPrimary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: AppLanguage.values.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 6),
+                  itemBuilder: (_, index) {
+                    final lang = AppLanguage.values[index];
+                    final isSelected = lang == currentLang;
+                    final title = lang == AppLanguage.system
+                        ? loc.systemDefault
+                        : lang.nativeName;
+                    final subtitle = lang == AppLanguage.system
+                        ? ''
+                        : lang.englishName;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        LocaleController.instance.setLanguage(lang);
+                        Navigator.pop(ctx);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 11,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF2855D9).withOpacity(0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF2855D9)
+                                : borderColor,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFF2855D9)
+                                    : borderColor.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                lang.code.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : textSecondary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: TextStyle(
+                                      color: textPrimary,
+                                      fontSize: 13.5,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                  if (subtitle.isNotEmpty)
+                                    Text(
+                                      subtitle,
+                                      style: TextStyle(
+                                        color: textSecondary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                color: Color(0xFF2855D9),
+                                size: 20,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1413,25 +1859,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
         decoration: BoxDecoration(
           color: selected ? const Color(0xFF2855D9) : Colors.transparent,
-          borderRadius: BorderRadius.circular(7),
+          borderRadius: BorderRadius.circular(9),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
-              size: 13,
+              size: 15,
               color: selected ? Colors.white : const Color(0xFF8B949E),
             ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? Colors.white : const Color(0xFF8B949E),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? Colors.white : const Color(0xFF8B949E),
+                ),
               ),
             ),
           ],

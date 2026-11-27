@@ -121,6 +121,9 @@ class _RoutingAssistantDialogState extends State<RoutingAssistantDialog> {
         ProfileGenerator.getPrimaryHostDomain(config: _parsedConfig);
     final cleanIpsList = ProfileGenerator.getBypassIps();
     final cleanIpsCsv = cleanIpsList.join(', ');
+    final dynamicPortsList =
+        ProfileGenerator.getDynamicPorts(config: _parsedConfig);
+    final dynamicPortsCsv = dynamicPortsList.join(', ');
     final allDirectRules =
         ProfileGenerator.getAllDirectRulesString(config: _parsedConfig);
 
@@ -405,7 +408,27 @@ class _RoutingAssistantDialogState extends State<RoutingAssistantDialog> {
               ),
               const SizedBox(height: 10),
 
-              // 3. All Direct Rules (domain:host + IPs)
+              // 3. Dynamic Ports to Open / Relay
+              _buildDataBox(
+                context: context,
+                title: loc.openPortsTitle,
+                value: dynamicPortsCsv,
+                copyButtonLabel: loc.copyPorts,
+                icon: Icons.settings_ethernet_rounded,
+                boxBg: boxBg,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                primaryBlue: primaryBlue,
+                onCopy: () => _copyToClipboard(
+                  context,
+                  dynamicPortsCsv,
+                  "${loc.copyPorts}: $dynamicPortsCsv ${loc.copiedToClipboard}",
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // 4. All Direct Rules (domain:host + IPs)
               _buildDataBox(
                 context: context,
                 title: loc.allBypassRules,
